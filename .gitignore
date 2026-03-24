@@ -1,0 +1,49 @@
+
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+
+###> friendsofphp/php-cs-fixer ###
+/.php-cs-fixer.php
+/.php-cs-fixer.cache
+###< friendsofphp/php-cs-fixer ###
+
+###> uploads ###
+/public/uploads/profile_pictures/*
+!/public/uploads/profile_pictures/.gitkeep
+!/public/uploads/profile_pictures/.gitignore
+###< uploads ###
+
+# Internal and AI-assisted workspace artifacts
+/.atl/
+/.claude/
+/.agent/
+/openspec/
+/memories/
+
+# Internal planning and non-public documentation
+/docs/
+/doc/
+/CLAUDE.md
+/ENGRAM.md
+/PROJECT_LOG.md
+/SDD.md
+/TODO.md
+*.md
+!/README.md
