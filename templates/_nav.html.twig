@@ -1,0 +1,101 @@
+<nav class="relative bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm" data-controller="navbar-dropdown">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+        {# Logo / App name #}
+        <div class="flex items-center gap-2">
+            <a href="{{ path('app_dashboard') }}" class="text-lg font-bold text-gray-900 dark:text-gray-100 hover:text-indigo-700 dark:hover:text-indigo-400 transition">
+                Training Tracker
+            </a>
+        </div>
+
+        {# Nav links + avatar dropdown #}
+        <div class="flex items-center gap-4">
+            {# Dashboard — always visible #}
+            {% set isDashboard = app.request.pathInfo starts with '/dashboard' or app.request.pathInfo == '/' %}
+            <a href="{{ path('app_dashboard') }}"
+               class="text-sm font-medium transition {{ isDashboard ? 'text-indigo-900 dark:text-indigo-300 border-b-2 border-indigo-600 pb-0.5' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300' }}">
+                Dashboard
+            </a>
+
+            {# ROLE_ATLETA links #}
+            {% if is_granted('ROLE_ATLETA') and not is_granted('ROLE_ENTRENADOR') %}
+                {% set isMesocycles = app.request.pathInfo starts with '/my-mesocycles' %}
+                <a href="{{ path('athlete_mesocycles_index') }}"
+                   class="text-sm font-medium transition {{ isMesocycles ? 'text-indigo-900 dark:text-indigo-300 border-b-2 border-indigo-600 pb-0.5' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300' }}">
+                    Mis Mesociclos
+                </a>
+            {% endif %}
+
+            {# ROLE_ENTRENADOR links #}
+            {% if is_granted('ROLE_ENTRENADOR') %}
+                {% set isExercises = app.request.pathInfo starts with '/exercises' %}
+                <a href="{{ path('exercise_index') }}"
+                   class="text-sm font-medium transition {{ isExercises ? 'text-indigo-900 dark:text-indigo-300 border-b-2 border-indigo-600 pb-0.5' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300' }}">
+                    Ejercicios
+                </a>
+
+                {% set isMesocycles = app.request.pathInfo starts with '/mesocycles' %}
+                <a href="{{ path('mesocycle_index') }}"
+                   class="text-sm font-medium transition {{ isMesocycles ? 'text-indigo-900 dark:text-indigo-300 border-b-2 border-indigo-600 pb-0.5' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300' }}">
+                    Mesociclos
+                </a>
+
+                {% set isAssignments = app.request.pathInfo starts with '/assignments' %}
+                <a href="{{ path('assignment_index') }}"
+                   class="text-sm font-medium transition {{ isAssignments ? 'text-indigo-900 dark:text-indigo-300 border-b-2 border-indigo-600 pb-0.5' : 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300' }}">
+                    Asignaciones
+                </a>
+            {% endif %}
+
+            {# Avatar dropdown trigger #}
+            <button type="button" data-action="click->navbar-dropdown#toggle"
+                    class="flex items-center gap-2 focus:outline-none">
+                {% if app.user.profilePictureFilename %}
+                    <img src="{{ '/uploads/profile_pictures/' ~ app.user.profilePictureFilename }}"
+                         alt="{{ app.user.fullName }}"
+                         class="w-9 h-9 rounded-full object-cover border-2 border-indigo-300">
+                {% else %}
+                    <span class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 inline-flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-300">
+                        {{ app.user.firstName|slice(0,1)|upper }}{{ app.user.lastName|slice(0,1)|upper }}
+                    </span>
+                {% endif %}
+                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            {# Dropdown panel #}
+            <div data-navbar-dropdown-target="panel"
+                 class="hidden absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1">
+
+                <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ app.user.firstName }} {{ app.user.lastName }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ app.user.email }}</p>
+                </div>
+
+                <a href="{{ path('profile_index') }}"
+                   class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Mi Perfil
+                </a>
+
+                {# Theme toggle #}
+                <div class="flex items-center justify-between px-4 py-2" data-controller="theme-toggle">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Tema oscuro</span>
+                    <button type="button" data-action="click->theme-toggle#toggle"
+                            class="relative inline-flex h-5 w-9 items-center rounded-full bg-gray-200 dark:bg-indigo-600 transition-colors focus:outline-none">
+                        <span data-theme-toggle-target="knob"
+                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform translate-x-0"></span>
+                    </button>
+                </div>
+
+                <div class="border-t border-gray-100 dark:border-gray-700 mt-1">
+                    <form method="post" action="{{ path('app_logout') }}">
+                        <button type="submit"
+                                class="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Cerrar sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

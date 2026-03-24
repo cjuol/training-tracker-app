@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Registrar Usuario — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
+    <div class="w-full max-w-lg">
+        <div class="text-center mb-8">
+            <span class="text-5xl">🏋️</span>
+            <h1 class="mt-4 text-3xl font-bold text-gray-900 dark:text-gray-100">Crear usuario</h1>
+            <p class="mt-1 text-sm text-yellow-600 font-medium">
+                ⚠ Esta página es solo para uso en desarrollo/seeding.
+            </p>
+        </div>
+
+        {% for flash in app.flashes('success') %}
+            <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 p-4 text-sm text-green-700 dark:text-green-300">
+                {{ flash }}
+            </div>
+        {% endfor %}
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md px-8 py-10">
+            {{ form_start(registrationForm, { attr: { novalidate: 'novalidate' } }) }}
+
+            <div class="mb-5">
+                {{ form_label(registrationForm.email, null, { label_attr: { class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' } }) }}
+                {{ form_widget(registrationForm.email, { attr: { class: 'w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30' } }) }}
+                {{ form_errors(registrationForm.email) }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div>
+                    {{ form_label(registrationForm.firstName, null, { label_attr: { class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' } }) }}
+                    {{ form_widget(registrationForm.firstName, { attr: { class: 'w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30' } }) }}
+                    {{ form_errors(registrationForm.firstName) }}
+                </div>
+                <div>
+                    {{ form_label(registrationForm.lastName, null, { label_attr: { class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' } }) }}
+                    {{ form_widget(registrationForm.lastName, { attr: { class: 'w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30' } }) }}
+                    {{ form_errors(registrationForm.lastName) }}
+                </div>
+            </div>
+
+            <div class="mb-5">
+                {{ form_label(registrationForm.roles, null, { label_attr: { class: 'block text-sm font-medium text-gray-700 mb-2' } }) }}
+                <div class="flex gap-6">
+                    {{ form_widget(registrationForm.roles) }}
+                </div>
+                {{ form_errors(registrationForm.roles) }}
+            </div>
+
+            <div class="mb-6">
+                {{ form_label(registrationForm.plainPassword, null, { label_attr: { class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' } }) }}
+                {{ form_widget(registrationForm.plainPassword, { attr: { class: 'w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30' } }) }}
+                {{ form_errors(registrationForm.plainPassword) }}
+            </div>
+
+            <button
+                type="submit"
+                class="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+            >
+                Registrar usuario
+            </button>
+
+            {{ form_end(registrationForm) }}
+
+            <p class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                ¿Ya tienes cuenta?
+                <a href="{{ path('app_login') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">Iniciar sesión</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
