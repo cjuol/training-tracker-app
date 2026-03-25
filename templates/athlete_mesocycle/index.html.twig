@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mis Mesociclos{% endblock %}
+
+{% block body %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Mis Mesociclos</h1>
+
+    {# Flash messages #}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+        <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium
+            {% if label == 'success' %}bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200
+            {% else %}bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endfor %}
+
+    {# ── Activos ── #}
+    <section class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Mesociclos Activos</h2>
+        {% if activeAssignments|length > 0 %}
+        <div class="grid gap-4 sm:grid-cols-2">
+            {% for assignment in activeAssignments %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <a href="{{ path('athlete_mesocycle_show', {id: assignment.id}) }}"
+                   class="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
+                    {{ assignment.mesocycle.title }}
+                </a>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Inicio: {{ assignment.startDate|date('d/m/Y') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Entrenador: {{ assignment.mesocycle.coach.firstName }} {{ assignment.mesocycle.coach.lastName }}</p>
+                {% if assignment.mesocycle.dailyStepsTarget %}
+                <p class="text-xs text-gray-500 dark:text-gray-400">Objetivo pasos: {{ assignment.mesocycle.dailyStepsTarget|number_format }}</p>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{{ path('athlete_mesocycle_show', {id: assignment.id}) }}"
+                       class="inline-flex items-center text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                        Ver detalle &rarr;
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">No tienes mesociclos activos. Únete a uno usando un código de invitación.</p>
+        {% endif %}
+    </section>
+
+    {# ── Historial ── #}
+    {% if pastAssignments|length > 0 %}
+    <section class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Historial de Mesociclos</h2>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Mesociclo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Inicio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Detalle</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for assignment in pastAssignments %}
+                    <tr>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ assignment.mesocycle.title }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ assignment.startDate|date('d/m/Y') }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if assignment.status == constant('App\\Enum\\AssignmentStatus::Completed') %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elseif assignment.status == constant('App\\Enum\\AssignmentStatus::Cancelled') %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                {{ assignment.status.label() }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="{{ path('athlete_mesocycle_show', {id: assignment.id}) }}"
+                               class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Unirse ── #}
+    <section>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Unirse a un Mesociclo</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <form method="post" action="{{ path('athlete_mesocycles_join') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('athlete-join-mesocycle') }}">
+                <div class="mb-4">
+                    <label for="invite_code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de invitación</label>
+                    <input type="text" id="invite_code" name="invite_code"
+                           class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="ej. a3f8c2d1e0"
+                           maxlength="12" required>
+                </div>
+                <div class="mb-4">
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de inicio</label>
+                    <input type="date" id="start_date" name="start_date"
+                           value="{{ 'today'|date('Y-m-d') }}"
+                           class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit"
+                        class="w-full sm:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
+                    Unirse
+                </button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

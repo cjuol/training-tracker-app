@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Asignar Mesociclo — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-8">
+
+        {# Flash messages #}
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="mb-4 rounded-md {{ type == 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800' }} px-4 py-3 text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        {# Breadcrumb #}
+        <nav class="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <a href="{{ path('assignment_index') }}" class="hover:text-gray-700 dark:hover:text-gray-300">Asignaciones</a>
+            <span>/</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium">Nueva</span>
+        </nav>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Asignar Mesociclo</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Asigna un mesociclo a uno de tus atletas.</p>
+            </div>
+            <div class="px-6 py-6">
+                {{ form_start(form, {attr: {class: 'space-y-6'}}) }}
+
+                    <div>
+                        {{ form_label(form.athlete, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
+                        {{ form_widget(form.athlete) }}
+                        {{ form_errors(form.athlete) }}
+                    </div>
+
+                    <div>
+                        {{ form_label(form.mesocycle, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
+                        {{ form_widget(form.mesocycle) }}
+                        {{ form_errors(form.mesocycle) }}
+                    </div>
+
+                    <div>
+                        {{ form_label(form.startDate, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
+                        {{ form_widget(form.startDate) }}
+                        {{ form_errors(form.startDate) }}
+                    </div>
+
+                    <div>
+                        {{ form_label(form.endDate, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
+                        {{ form_widget(form.endDate) }}
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Opcional. Deja en blanco si el mesociclo no tiene fecha de finalización.</p>
+                        {{ form_errors(form.endDate) }}
+                    </div>
+
+                    <div class="flex items-center gap-4 pt-2">
+                        <button type="submit"
+                                class="inline-flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                            Asignar
+                        </button>
+                        <a href="{{ path('assignment_index') }}"
+                           class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                            Cancelar
+                        </a>
+                    </div>
+
+                {{ form_end(form) }}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
