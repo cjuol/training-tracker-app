@@ -1,0 +1,58 @@
+{#
+  Partial: a single session card with its exercises list.
+  Variables: session (WorkoutSession entity), mesocycle (Mesocycle entity)
+#}
+{% set reorderUrl = path('session_exercise_reorder', {sessionId: session.id}) %}
+
+<div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden"
+     data-sortable-target="item"
+     data-id="{{ session.id }}"
+     draggable="true">
+
+    {# Session header #}
+    <div class="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing">
+        <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 dark:text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+            </svg>
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ session.name }}</h3>
+                {% if session.dayOfWeek %}
+                    {% set days = {1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'} %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ days[session.dayOfWeek] ?? '' }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ path('session_exercise_new', {sessionId: session.id}) }}"
+               class="inline-flex items-center gap-1 rounded bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-500">
+                + Ejercicio
+            </a>
+            <a href="{{ path('workout_session_edit', {mesocycleId: mesocycle.id, id: session.id}) }}"
+               class="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">Editar</a>
+            <form method="post"
+                  action="{{ path('workout_session_delete', {mesocycleId: mesocycle.id, id: session.id}) }}"
+                  onsubmit="return confirm('¿Eliminar la sesión «{{ session.name }}» y todos sus ejercicios?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete-session-' ~ session.id) }}">
+                <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-900">Eliminar</button>
+            </form>
+        </div>
+    </div>
+
+    {# Exercises list — sortable #}
+    <div class="p-3"
+         data-controller="sortable"
+         data-sortable-url-value="{{ reorderUrl }}"
+         data-sortable-csrf-value="{{ csrf_token('reorder_session_exercises') }}">
+        {% set exercises = session.orderedExercises %}
+        {% if exercises is empty %}
+            <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">No hay ejercicios en esta sesión todavía.</p>
+        {% else %}
+            <div class="space-y-2">
+                {% for sessionExercise in exercises %}
+                    {% include 'mesocycle/_exercise_row.html.twig' with {sessionExercise: sessionExercise, session: session} %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,17 @@
+{% set colorClasses = [
+    'bg-indigo-500', 'bg-violet-500', 'bg-sky-500', 'bg-emerald-500',
+    'bg-amber-500', 'bg-rose-500', 'bg-teal-500', 'bg-orange-500'
+] %}
+<div class="flex flex-wrap gap-2">
+    {% for athlete in athletes %}
+        {% set colorClass = colorClasses[athlete.id % 8] %}
+        {% set initials = athlete.firstName|first|upper ~ athlete.lastName|first|upper %}
+        <a href="{{ path('mesocycle_athlete_stats', {id: mesocycle.id, athleteId: athlete.id}) }}"
+           class="group relative flex items-center justify-center w-9 h-9 rounded-full {{ colorClass }} text-white text-xs font-bold cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-indigo-400 transition">
+            {{ initials }}
+            <span class="pointer-events-none absolute bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                {{ athlete.firstName }} {{ athlete.lastName }}
+            </span>
+        </a>
+    {% endfor %}
+</div>
