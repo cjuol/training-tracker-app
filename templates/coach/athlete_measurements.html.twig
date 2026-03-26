@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mediciones de {{ athlete.fullName }} — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {# Breadcrumb #}
+        <nav class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            <a href="{{ path('app_dashboard') }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Panel</a>
+            <span class="mx-1">/</span>
+            <a href="{{ path('coach_athlete_history', {athleteId: athlete.id}) }}"
+               class="hover:text-indigo-600 dark:hover:text-indigo-400">Atleta: {{ athlete.fullName }}</a>
+            <span class="mx-1">/</span>
+            <span class="text-gray-700 dark:text-gray-300">Mediciones</span>
+        </nav>
+
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            Mediciones de {{ athlete.fullName }}
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ athlete.email }}</p>
+
+        {% if measurements is empty %}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-12 text-center shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Este atleta no tiene mediciones registradas todavía.</p>
+            </div>
+        {% else %}
+            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-900/50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Peso (kg)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pecho (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Cintura (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Caderas (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Brazos (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Notas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                        {% for measurement in measurements %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                    {{ measurement.measurementDate|date('d/m/Y') }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ measurement.weightKg ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ measurement.chestCm ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ measurement.waistCm ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ measurement.hipsCm ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ measurement.armsCm ?? '—' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate"
+                                    title="{{ measurement.notes }}">
+                                    {{ measurement.notes ?? '—' }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Server-side pagination #}
+            {% if totalPages > 1 %}
+                <nav class="mt-6 flex items-center justify-between">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        Página {{ page }} de {{ totalPages }} ({{ total }} registros)
+                    </div>
+                    <div class="flex gap-2">
+                        {% if page > 1 %}
+                            <a href="{{ path('coach_athlete_measurements', {athleteId: athlete.id, page: page - 1}) }}"
+                               class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                Anterior
+                            </a>
+                        {% else %}
+                            <span class="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                                Anterior
+                            </span>
+                        {% endif %}
+
+                        {% if page < totalPages %}
+                            <a href="{{ path('coach_athlete_measurements', {athleteId: athlete.id, page: page + 1}) }}"
+                               class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                Siguiente
+                            </a>
+                        {% else %}
+                            <span class="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                                Siguiente
+                            </span>
+                        {% endif %}
+                    </div>
+                </nav>
+            {% endif %}
+        {% endif %}
+
+    </main>
+</div>
+{% endblock %}

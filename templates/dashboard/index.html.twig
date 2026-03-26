@@ -1,0 +1,206 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            Bienvenido, {{ user.firstName }}
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-8">
+            {% if isAthlete and isCoach %}
+                Conectado como <span class="font-semibold text-indigo-600">Atleta</span> y <span class="font-semibold text-green-600">Entrenador</span>.
+            {% elseif isCoach %}
+                Conectado como <span class="font-semibold text-indigo-600">Entrenador</span>.
+            {% else %}
+                Conectado como <span class="font-semibold text-green-600">Atleta</span>.
+            {% endif %}
+        </p>
+
+        {# ================================================================ #}
+        {# ATHLETE SECTION                                                   #}
+        {# ================================================================ #}
+        {% if isAthlete %}
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Mis Mesociclos Activos</h2>
+
+            {% if athleteData.activeAssignments is empty %}
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-10 text-center shadow-sm mb-8">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No tienes mesociclos asignados actualmente.</p>
+                </div>
+            {% else %}
+                <div class="space-y-6 mb-10">
+                    {% for assignment in athleteData.activeAssignments %}
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                            {# Mesocycle header #}
+                            <div class="bg-indigo-50 dark:bg-indigo-950 border-b border-indigo-100 dark:border-indigo-900 px-6 py-4">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-indigo-900 dark:text-indigo-200">{{ assignment.mesocycle.title }}</h3>
+                                        <p class="text-sm text-indigo-700 dark:text-indigo-300 mt-0.5">
+                                            Entrenador: <span class="font-medium">{{ assignment.assignedBy.fullName }}</span>
+                                        </p>
+                                    </div>
+                                    <div class="text-xs text-indigo-600 dark:text-indigo-400 text-right">
+                                        <p>Inicio: {{ assignment.startDate|date('d/m/Y') }}</p>
+                                        {% if assignment.endDate %}
+                                            <p>Fin: {{ assignment.endDate|date('d/m/Y') }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# Sessions list #}
+                            {% set sessions = assignment.mesocycle.workoutSessions|sort((a, b) => a.orderIndex <=> b.orderIndex) %}
+                            {% if sessions is empty %}
+                                <div class="px-6 py-4">
+                                    <p class="text-sm text-gray-400 dark:text-gray-500 italic">Este mesociclo no tiene sesiones todavía.</p>
+                                </div>
+                            {% else %}
+                                <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    {% for session in sessions %}
+                                        <li class="flex items-center justify-between px-6 py-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ session.name }}</p>
+                                                {% if session.dayOfWeek %}
+                                                    {% set days = {1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'} %}
+                                                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ days[session.dayOfWeek] ?? '' }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                {% if athleteData.sessionInProgress[session.id] is defined %}
+                                                    <a href="{{ path('workout_show', {workoutLogId: athleteData.sessionInProgress[session.id]}) }}"
+                                                       class="inline-flex items-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 active:bg-yellow-600">
+                                                        Continuar
+                                                    </a>
+                                                {% else %}
+                                                    <form method="POST"
+                                                          action="{{ path('workout_start', {assignedMesocycleId: assignment.id, sessionId: session.id}) }}">
+                                                        <button type="submit"
+                                                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700">
+                                                            Iniciar
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+        {# ================================================================ #}
+        {# COACH SECTION                                                     #}
+        {# ================================================================ #}
+        {% if isCoach %}
+
+            {% if isAthlete %}
+                <hr class="my-6 border-gray-200 dark:border-gray-700">
+            {% endif %}
+
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Panel del Entrenador</h2>
+
+            {# Quick-links bar #}
+            <div class="mb-8 flex flex-wrap gap-3">
+                <a href="{{ coachData.newMesocycleUrl }}"
+                   class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition">
+                    + Nuevo Mesociclo
+                </a>
+                <a href="{{ coachData.newAssignmentUrl }}"
+                   class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    + Asignar Mesociclo
+                </a>
+                <a href="{{ path('exercise_index') }}"
+                   class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    Catálogo de Ejercicios
+                </a>
+            </div>
+
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Mis Atletas</h3>
+
+            {% if coachData.summaries is empty %}
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-12 text-center shadow-sm">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No tienes atletas asignados todavía.</p>
+                    <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                        Asigna atletas usando la sección de administración.
+                    </p>
+                </div>
+            {% else %}
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for summary in coachData.summaries %}
+                        <div class="flex flex-col rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                            {# Card header #}
+                            <div class="flex-1 p-6">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                            {{ summary.athlete.fullName }}
+                                        </h4>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ summary.athlete.email }}</p>
+                                    </div>
+                                    <span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">
+                                        Atleta
+                                    </span>
+                                </div>
+
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-500 dark:text-gray-400">Mesociclo activo</span>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200 text-right max-w-[55%] truncate">
+                                            {% if summary.activeMesocycle %}
+                                                {{ summary.activeMesocycle }}
+                                            {% else %}
+                                                <span class="text-gray-400 dark:text-gray-500 italic">Sin mesociclo activo</span>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-500 dark:text-gray-400">Último entreno</span>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">
+                                            {% if summary.lastWorkoutDate %}
+                                                {{ summary.lastWorkoutDate|date('d/m/Y') }}
+                                            {% else %}
+                                                <span class="text-gray-400 dark:text-gray-500 italic">Nunca</span>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-500 dark:text-gray-400">Sesiones completadas</span>
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                                            {{ summary.completedSessionsThisMesocycle }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# Card footer #}
+                            <div class="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-6 py-3 flex gap-2">
+                                <a href="{{ path('coach_athlete_history', {athleteId: summary.athlete.id}) }}"
+                                   class="flex-1 text-center rounded-md border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 shadow-sm hover:bg-indigo-50 dark:hover:bg-gray-700 transition">
+                                    Ver Historial
+                                </a>
+                                <a href="{{ path('coach_athlete_measurements', {athleteId: summary.athlete.id}) }}"
+                                   class="flex-1 text-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                    Mediciones
+                                </a>
+                                <a href="{{ path('coach_athlete_steps', {athleteId: summary.athlete.id}) }}"
+                                   class="flex-1 text-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                    Pasos
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+    </main>
+</div>
+{% endblock %}
