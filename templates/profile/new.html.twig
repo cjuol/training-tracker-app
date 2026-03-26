@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Medición — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50">
+    <main class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <div class="mb-6">
+            <a href="{{ path('profile_index') }}"
+               class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">&larr; Volver al perfil</a>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Nueva Medición</h1>
+
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
+            {{ form_start(form, {attr: {class: 'space-y-5'}}) }}
+
+            <div>
+                {{ form_label(form.measurementDate, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.measurementDate) }}
+                {{ form_errors(form.measurementDate) }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.weightKg, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                    {{ form_widget(form.weightKg) }}
+                    {{ form_errors(form.weightKg) }}
+                </div>
+                <div>
+                    {{ form_label(form.chestCm, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                    {{ form_widget(form.chestCm) }}
+                    {{ form_errors(form.chestCm) }}
+                </div>
+                <div>
+                    {{ form_label(form.waistCm, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                    {{ form_widget(form.waistCm) }}
+                    {{ form_errors(form.waistCm) }}
+                </div>
+                <div>
+                    {{ form_label(form.hipsCm, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                    {{ form_widget(form.hipsCm) }}
+                    {{ form_errors(form.hipsCm) }}
+                </div>
+                <div>
+                    {{ form_label(form.armsCm, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                    {{ form_widget(form.armsCm) }}
+                    {{ form_errors(form.armsCm) }}
+                </div>
+            </div>
+
+            <div>
+                {{ form_label(form.notes, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.notes) }}
+                {{ form_errors(form.notes) }}
+            </div>
+
+            <div class="pt-2 flex items-center gap-4">
+                <button type="submit"
+                        class="rounded-md bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700">
+                    Guardar medición
+                </button>
+                <a href="{{ path('profile_index') }}"
+                   class="text-sm text-gray-500 hover:text-gray-700">
+                    Cancelar
+                </a>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+
+    </main>
+</div>
+{% endblock %}
