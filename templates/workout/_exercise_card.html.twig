@@ -1,0 +1,114 @@
+{#
+  Variables expected:
+    sessionExercise  — SessionExercise entity
+    setLogs          — SetLog[] already logged for this exercise
+    workoutLog       — WorkoutLog entity
+#}
+<div class="relative rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-all duration-200"
+     data-workout-target="exerciseCard"
+     data-exercise-id="{{ sessionExercise.id }}"
+     data-series-type="{{ sessionExercise.seriesType.value }}"
+     data-superseries-group="{{ sessionExercise.superseriesGroup ?? '' }}">
+
+    {# ── Card header ── #}
+    <div class="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {{ sessionExercise.exercise.name }}
+            </h2>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                {# Measurement type badge #}
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                    {% if sessionExercise.exercise.measurementType.value == 'reps_weight' %}
+                        bg-blue-50 text-blue-700
+                    {% elseif sessionExercise.exercise.measurementType.value == 'time_distance' %}
+                        bg-teal-50 text-teal-700
+                    {% else %}
+                        bg-orange-50 text-orange-700
+                    {% endif %}">
+                    {{ sessionExercise.exercise.measurementType.label() }}
+                </span>
+                {# Series type badge #}
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700">
+                    {{ sessionExercise.seriesType.label() }}
+                </span>
+            </div>
+        </div>
+        {# Target info #}
+        <div class="shrink-0 text-right text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-semibold text-gray-800 dark:text-gray-200">{{ setLogs|length }}/{{ sessionExercise.targetSets }}</span> series
+            {% if sessionExercise.targetReps %}
+                <br>{{ sessionExercise.targetReps }} reps
+            {% endif %}
+            {% if sessionExercise.targetWeight %}
+                <br>{{ sessionExercise.targetWeight }} kg
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Logged sets table ── #}
+    {% if setLogs is not empty %}
+    <div class="px-4 pb-2 overflow-x-auto" data-workout-target="setTable" data-exercise-id="{{ sessionExercise.id }}">
+        <table class="min-w-full text-xs">
+            <thead>
+                <tr class="text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
+                    <th class="py-1 pr-3 text-left font-medium w-8">#</th>
+                    {% if sessionExercise.exercise.measurementType.value == 'reps_weight' %}
+                        <th class="py-1 pr-3 text-left font-medium">Reps</th>
+                        <th class="py-1 pr-3 text-left font-medium">Kg</th>
+                        <th class="py-1 pr-3 text-left font-medium">RIR</th>
+                    {% elseif sessionExercise.exercise.measurementType.value == 'time_distance' %}
+                        <th class="py-1 pr-3 text-left font-medium">Tiempo</th>
+                        <th class="py-1 pr-3 text-left font-medium">Dist (km)</th>
+                    {% else %}
+                        <th class="py-1 pr-3 text-left font-medium">Tiempo</th>
+                        <th class="py-1 pr-3 text-left font-medium">Kcal</th>
+                    {% endif %}
+                    <th class="py-1 text-left font-medium">Desc (s)</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700" data-workout-target="setTableBody" data-table-exercise-id="{{ sessionExercise.id }}">
+                {% for setLog in setLogs %}
+                <tr class="text-gray-700 dark:text-gray-300">
+                    <td class="py-1.5 pr-3 font-semibold text-gray-400 dark:text-gray-500">{{ setLog.setNumber }}</td>
+                    {% if sessionExercise.exercise.measurementType.value == 'reps_weight' %}
+                        <td class="py-1.5 pr-3">{{ setLog.reps ?? '—' }}</td>
+                        <td class="py-1.5 pr-3">{{ setLog.weight ?? '—' }}</td>
+                        <td class="py-1.5 pr-3">{{ setLog.rir ?? '—' }}</td>
+                    {% elseif sessionExercise.exercise.measurementType.value == 'time_distance' %}
+                        <td class="py-1.5 pr-3">{{ setLog.timeDuration ? (setLog.timeDuration // 60 ~ ':' ~ '%02d'|format(setLog.timeDuration % 60)) : '—' }}</td>
+                        <td class="py-1.5 pr-3">{{ setLog.distance ?? '—' }}</td>
+                    {% else %}
+                        <td class="py-1.5 pr-3">{{ setLog.timeDuration ? (setLog.timeDuration // 60 ~ ':' ~ '%02d'|format(setLog.timeDuration % 60)) : '—' }}</td>
+                        <td class="py-1.5 pr-3">{{ setLog.kcal ?? '—' }}</td>
+                    {% endif %}
+                    <td class="py-1.5">{{ setLog.restTimeSeconds ?? '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# ── Set input form ── #}
+    {% if workoutLog.status.value == 'in_progress' %}
+    <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-3"
+         data-workout-target="setFormWrapper"
+         data-form-exercise-id="{{ sessionExercise.id }}">
+        {% include 'workout/_set_form.html.twig' with {
+            sessionExercise: sessionExercise,
+            workoutLog: workoutLog
+        } %}
+    </div>
+    {% endif %}
+
+    {# ── Locked overlay ── #}
+    <div class="absolute inset-0 rounded-xl bg-white/75 dark:bg-gray-900/75 backdrop-blur-[1px] flex items-center justify-center hidden"
+         data-workout-target="lockedOverlay"
+         data-overlay-exercise-id="{{ sessionExercise.id }}">
+        <span class="rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+            Completa el ejercicio anterior primero
+        </span>
+    </div>
+
+</div>

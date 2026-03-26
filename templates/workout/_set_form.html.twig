@@ -1,0 +1,127 @@
+{#
+  Variables expected:
+    sessionExercise  — SessionExercise entity
+    workoutLog       — WorkoutLog entity
+#}
+{% set mt = sessionExercise.exercise.measurementType.value %}
+
+<div data-exercise-id="{{ sessionExercise.id }}">
+
+    <div class="grid gap-2"
+         data-workout-target="setForm"
+         data-form-exercise-id="{{ sessionExercise.id }}">
+
+        {# ── reps_weight fields ── #}
+        {% if mt == 'reps_weight' %}
+        <div class="grid grid-cols-3 gap-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Reps *</label>
+                <input type="number"
+                       name="reps"
+                       min="1"
+                       placeholder="8"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldReps"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Kg</label>
+                <input type="number"
+                       name="weight"
+                       step="0.5"
+                       min="0"
+                       placeholder="80"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldWeight"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">RIR</label>
+                <input type="number"
+                       name="rir"
+                       min="0"
+                       max="10"
+                       placeholder="2"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldRir"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── time_distance fields ── #}
+        {% if mt == 'time_distance' %}
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Duración (s) *</label>
+                <input type="number"
+                       name="timeDuration"
+                       min="1"
+                       placeholder="300"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldTimeDuration"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Distancia (km)</label>
+                <input type="number"
+                       name="distance"
+                       step="0.01"
+                       min="0"
+                       placeholder="1.5"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldDistance"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── time_kcal fields ── #}
+        {% if mt == 'time_kcal' %}
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Duración (s) *</label>
+                <input type="number"
+                       name="timeDuration"
+                       min="1"
+                       placeholder="300"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldTimeDuration"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Kcal</label>
+                <input type="number"
+                       name="kcal"
+                       min="0"
+                       placeholder="150"
+                       class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-center focus:border-indigo-500 focus:outline-none"
+                       data-workout-target="fieldKcal"
+                       data-form-exercise-id="{{ sessionExercise.id }}">
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── Observación (always visible) ── #}
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Observación</label>
+            <textarea name="observacion"
+                      rows="2"
+                      placeholder="Notas de la serie…"
+                      class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none resize-none"
+                      data-workout-target="fieldObservacion"
+                      data-form-exercise-id="{{ sessionExercise.id }}"></textarea>
+        </div>
+
+        {# ── Register button ── #}
+        <button type="button"
+                class="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50"
+                data-action="workout#logSet"
+                data-exercise-id="{{ sessionExercise.id }}"
+                data-measurement-type="{{ mt }}">
+            Registrar Serie
+        </button>
+
+    </div>
+
+</div>
