@@ -1,19 +1,19 @@
 {{ form_start(form, {attr: {class: 'space-y-6'}}) }}
 
     <div>
-        {{ form_label(form.name, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+        {{ form_label(form.name, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
         {{ form_widget(form.name) }}
         {{ form_errors(form.name) }}
     </div>
 
     <div>
-        {{ form_label(form.description, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+        {{ form_label(form.description, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
         {{ form_widget(form.description) }}
         {{ form_errors(form.description) }}
     </div>
 
     <div>
-        {{ form_label(form.measurementType, null, {label_attr: {class: 'block text-sm font-medium text-gray-700'}}) }}
+        {{ form_label(form.measurementType, null, {label_attr: {class: 'block text-sm font-medium text-gray-700 dark:text-gray-300'}}) }}
         {{ form_widget(form.measurementType) }}
         {{ form_errors(form.measurementType) }}
     </div>
@@ -24,7 +24,7 @@
             Guardar
         </button>
         <a href="{{ path('exercise_index') }}"
-           class="text-sm font-medium text-gray-600 hover:text-gray-900">
+           class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">
             Cancelar
         </a>
     </div>

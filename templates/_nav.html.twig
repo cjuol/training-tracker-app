@@ -47,6 +47,7 @@
             {% endif %}
 
             {# Avatar dropdown trigger #}
+            <div class="relative">
             <button type="button" data-action="click->navbar-dropdown#toggle"
                     class="flex items-center gap-2 focus:outline-none">
                 {% if app.user.profilePictureFilename %}
@@ -96,6 +97,7 @@
                     </form>
                 </div>
             </div>
+            </div>{# end relative wrapper #}
         </div>
     </div>
 </nav>
