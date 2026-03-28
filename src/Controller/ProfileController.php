@@ -444,6 +444,67 @@ class ProfileController extends AbstractController
         return new JsonResponse($data);
     }
 
+    #[Route('/cardio-intraday', name: 'profile_cardio_intraday', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function cardioIntraday(DailyHeartRateRepository $heartRateRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $now     = new \DateTimeImmutable('now');
+        $cutoff  = $now->modify('-24 hours');
+
+        $today     = $heartRateRepo->findByUserAndDate($user, new \DateTimeImmutable('today'));
+        $yesterday = $heartRateRepo->findByUserAndDate($user, new \DateTimeImmutable('yesterday'));
+
+        // Collect all entries with their record date
+        $allEntries = [];
+        foreach ([$yesterday, $today] as $record) {
+            if ($record === null) {
+                continue;
+            }
+            $dataset = $record->getIntradayData();
+            if (empty($dataset)) {
+                continue;
+            }
+            $recordDate = $record->getDate()->format('Y-m-d');
+            foreach ($dataset as $entry) {
+                $allEntries[] = ['date' => $recordDate, 'time' => $entry['time'], 'value' => (int) $entry['value']];
+            }
+        }
+
+        if (empty($allEntries)) {
+            return new JsonResponse([]);
+        }
+
+        // Filter to last 24h window and bucket by hour
+        $buckets = [];
+        foreach ($allEntries as $entry) {
+            $entryDateTime = new \DateTimeImmutable($entry['date'].' '.$entry['time']);
+            if ($entryDateTime < $cutoff || $entryDateTime > $now) {
+                continue;
+            }
+            $hour = (int) $entryDateTime->format('H');
+            $buckets[$hour][] = $entry['value'];
+        }
+
+        if (empty($buckets)) {
+            return new JsonResponse([]);
+        }
+
+        ksort($buckets);
+
+        $result = [];
+        foreach ($buckets as $hour => $values) {
+            $result[] = [
+                'hour'    => sprintf('%02d:00', $hour),
+                'avgBpm'  => (int) round(array_sum($values) / count($values)),
+            ];
+        }
+
+        return new JsonResponse($result);
+    }
+
     #[Route('/cardio-data', name: 'profile_cardio_data', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function cardioData(Request $request, DailyHeartRateRepository $heartRateRepo): JsonResponse

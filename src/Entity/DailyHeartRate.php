@@ -35,6 +35,10 @@ class DailyHeartRate
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $zones = null;
 
+    /** @var array<array{time: string, value: int}>|null */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $intradayData = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -96,6 +100,18 @@ class DailyHeartRate
     public function setZones(?array $zones): static
     {
         $this->zones = $zones;
+
+        return $this;
+    }
+
+    public function getIntradayData(): ?array
+    {
+        return $this->intradayData;
+    }
+
+    public function setIntradayData(?array $intradayData): static
+    {
+        $this->intradayData = $intradayData;
 
         return $this;
     }

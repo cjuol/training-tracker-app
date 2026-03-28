@@ -97,6 +97,38 @@
             }, 0);
         </script>
 
+        {# Intraday HR chart — last 24 hours #}
+        <div
+            data-controller="intraday-hr"
+            data-intraday-hr-url-value="{{ path('profile_cardio_intraday') }}"
+            class="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
+        >
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">FC intradía — últimas 24 horas</h2>
+
+            <button type="button" id="intraday-auto-trigger"
+                    class="sr-only"
+                    data-action="click->intraday-hr#toggle">
+                Cargar gráfica intradía
+            </button>
+
+            <div data-intraday-hr-target="panel" class="hidden">
+                <div class="relative h-48">
+                    <canvas data-intraday-hr-target="canvas"></canvas>
+                </div>
+                <p data-intraday-hr-target="empty"
+                   class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">
+                    Sin datos intradía aún.
+                </p>
+            </div>
+        </div>
+
+        <script>
+            setTimeout(function() {
+                var btn = document.getElementById('intraday-auto-trigger');
+                if (btn) btn.click();
+            }, 0);
+        </script>
+
         {% endif %}
 
     </main>

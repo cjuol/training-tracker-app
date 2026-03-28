@@ -15,6 +15,7 @@ use App\Repository\DailyStepsRepository;
 use App\Repository\FitbitActivityRepository;
 use App\Repository\SleepLogRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class FitbitSyncService
 {
@@ -25,6 +26,7 @@ class FitbitSyncService
         private readonly DailyHeartRateRepository $heartRateRepo,
         private readonly FitbitActivityRepository $activityRepo,
         private readonly SleepLogRepository $sleepRepo,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -38,6 +40,9 @@ class FitbitSyncService
         $this->syncHeartRate($user, $token, $date);
         $this->syncSleep($user, $token, $date);
         $this->syncActivities($user, $token, $date);
+        $yesterday = \DateTimeImmutable::createFromInterface($date)->modify('-1 day');
+        $this->syncIntradayHeartRate($user, $token, $date);
+        $this->syncIntradayHeartRate($user, $token, $yesterday);
         $this->em->flush();
     }
 
@@ -81,6 +86,36 @@ class FitbitSyncService
         $record->setRestingHeartRate($restingHr);
         $record->setZones($zones ?: null);
         $record->setCaloriesOut($calories);
+    }
+
+    private function syncIntradayHeartRate(User $user, FitbitToken $token, \DateTimeInterface $date): void
+    {
+        $dateStr = $date->format('Y-m-d');
+        try {
+            $data = $this->apiClient->get($token, "/1/user/-/activities/heart/date/{$dateStr}/1d/1min/time/00:00/23:59.json");
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'HTTP 403')) {
+                $this->logger->warning('Fitbit intraday HR: 403 Forbidden (non-Personal app?), skipping.', ['date' => $dateStr]);
+
+                return;
+            }
+            throw $e;
+        }
+
+        $dataset = $data['activities-heart-intraday']['dataset'] ?? [];
+
+        if (empty($dataset)) {
+            return;
+        }
+
+        $record = $this->heartRateRepo->findByUserAndDate($user, new \DateTimeImmutable($dateStr));
+        if (!$record) {
+            $record = new DailyHeartRate();
+            $record->setUser($user);
+            $record->setDate(new \DateTimeImmutable($dateStr));
+            $this->em->persist($record);
+        }
+        $record->setIntradayData($dataset);
     }
 
     private function syncSleep(User $user, FitbitToken $token, \DateTimeInterface $date): void
