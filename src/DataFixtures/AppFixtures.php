@@ -853,11 +853,11 @@ class AppFixtures extends Fixture
         // =====================================================================
 
         $anaMeasurements = [
-            [120, '72.00', '90.00', '72.00', '96.00', '32.00', 'Inicio del seguimiento de composición corporal.'],
-            [90,  '71.50', '89.50', '71.00', '95.50', '32.50', 'Mes 2 — tendencia positiva en composición.'],
-            [60,  '70.80', '89.00', '70.00', '95.00', '33.00', 'Mes 3 — pérdida de grasa y ganancia muscular leve.'],
-            [30,  '70.20', '88.50', '69.50', '94.50', '33.50', 'Mes 4 — progresión continua. Masa muscular en brazos en aumento.'],
-            [0,   '69.80', '88.00', '69.00', '94.00', '34.00', 'Medición actual — excelente evolución en 4 meses.'],
+            [120, 72.00, 90.00, 72.00, 96.00, 32.00, 'Inicio del seguimiento de composición corporal.'],
+            [90,  71.50, 89.50, 71.00, 95.50, 32.50, 'Mes 2 — tendencia positiva en composición.'],
+            [60,  70.80, 89.00, 70.00, 95.00, 33.00, 'Mes 3 — pérdida de grasa y ganancia muscular leve.'],
+            [30,  70.20, 88.50, 69.50, 94.50, 33.50, 'Mes 4 — progresión continua. Masa muscular en brazos en aumento.'],
+            [0,   69.80, 88.00, 69.00, 94.00, 34.00, 'Medición actual — excelente evolución en 4 meses.'],
         ];
 
         foreach ($anaMeasurements as [$daysAgo, $weight, $chest, $waist, $hips, $arms, $notes]) {
@@ -878,9 +878,9 @@ class AppFixtures extends Fixture
         // =====================================================================
 
         $javierMeasurements = [
-            [60, '82.00', '100.00', '88.00', '102.00', '38.00', 'Inicio del seguimiento.'],
-            [30, '82.50', '100.50', '87.00', '102.00', '38.50', 'Mes 2 — leve ganancia de masa muscular.'],
-            [0,  '83.00', '101.00', '86.50', '102.00', '39.00', 'Medición actual — buen progreso en fuerza e hipertrofia.'],
+            [60, 82.00, 100.00, 88.00, 102.00, 38.00, 'Inicio del seguimiento.'],
+            [30, 82.50, 100.50, 87.00, 102.00, 38.50, 'Mes 2 — leve ganancia de masa muscular.'],
+            [0,  83.00, 101.00, 86.50, 102.00, 39.00, 'Medición actual — buen progreso en fuerza e hipertrofia.'],
         ];
 
         foreach ($javierMeasurements as [$daysAgo, $weight, $chest, $waist, $hips, $arms, $notes]) {
