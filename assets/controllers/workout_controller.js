@@ -284,9 +284,7 @@ export default class extends Controller {
         );
 
         if (!tbody) {
-            // Table not yet rendered (no sets before this one) — reload to get full table
-            // A lightweight approach: just reload the page once
-            window.location.reload();
+            console.warn('[workout] setTableBody target not found for exercise', exerciseId);
             return;
         }
 
@@ -315,6 +313,12 @@ export default class extends Controller {
 
         tr.innerHTML = cells;
         tbody.appendChild(tr);
+
+        // Un-hide the table wrapper when appending the first row
+        const tableWrapper = this.element.querySelector(
+            `[data-workout-target="setTable"][data-exercise-id="${exerciseId}"]`
+        );
+        if (tableWrapper) tableWrapper.classList.remove('hidden');
     }
 
     _showCompletionModal() {

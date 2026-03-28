@@ -47,9 +47,11 @@
     </div>
 
     {# ── Logged sets table ── #}
-    {% if setLogs is not empty %}
-    <div class="px-4 pb-2 overflow-x-auto" data-workout-target="setTable" data-exercise-id="{{ sessionExercise.id }}">
+    <div class="px-4 pb-2 overflow-x-auto {% if setLogs is empty %}hidden{% endif %}"
+         data-workout-target="setTable"
+         data-exercise-id="{{ sessionExercise.id }}">
         <table class="min-w-full text-xs">
+            {% if setLogs is not empty %}
             <thead>
                 <tr class="text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
                     <th class="py-1 pr-3 text-left font-medium w-8">#</th>
@@ -67,7 +69,10 @@
                     <th class="py-1 text-left font-medium">Desc (s)</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700" data-workout-target="setTableBody" data-table-exercise-id="{{ sessionExercise.id }}">
+            {% endif %}
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700"
+                   data-workout-target="setTableBody"
+                   data-table-exercise-id="{{ sessionExercise.id }}">
                 {% for setLog in setLogs %}
                 <tr class="text-gray-700 dark:text-gray-300">
                     <td class="py-1.5 pr-3 font-semibold text-gray-400 dark:text-gray-500">{{ setLog.setNumber }}</td>
@@ -88,7 +93,6 @@
             </tbody>
         </table>
     </div>
-    {% endif %}
 
     {# ── Set input form ── #}
     {% if workoutLog.status.value == 'in_progress' %}
