@@ -206,6 +206,53 @@
         </div>
 
 
+        {# ── Fitbit Integration ───────────────────────────────────────────────── #}
+        {% if is_granted('ROLE_ATLETA') %}
+        <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Integración Fitbit</h3>
+            {% set fitbitToken = app.user.fitbitToken %}
+            {% if fitbitToken is null %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Conecta tu cuenta de Fitbit para sincronizar automáticamente pasos, sueño y frecuencia cardíaca.
+                </p>
+                <a href="{{ path('fitbit_connect') }}"
+                   class="inline-flex items-center rounded-md bg-[#00B0B9] px-4 py-2 text-sm font-semibold text-white hover:bg-[#009aa3]">
+                    Conectar Fitbit
+                </a>
+            {% elseif not fitbitToken.isValid %}
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-900/30 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-300">
+                        Token expirado
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    La conexión con Fitbit ha expirado. Vuelve a conectar tu cuenta.
+                </p>
+                <a href="{{ path('fitbit_connect') }}"
+                   class="inline-flex items-center rounded-md bg-[#00B0B9] px-4 py-2 text-sm font-semibold text-white hover:bg-[#009aa3]">
+                    Reconectar Fitbit
+                </a>
+            {% else %}
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="inline-flex items-center rounded-full bg-green-50 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
+                        Conectado
+                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        desde {{ fitbitToken.connectedAt|date('d/m/Y') }}
+                    </span>
+                </div>
+                <form method="post" action="{{ path('fitbit_disconnect') }}"
+                      onsubmit="return confirm('¿Desconectar Fitbit? Los datos ya sincronizados se conservarán.')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('fitbit_disconnect') }}">
+                    <button type="submit"
+                            class="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
+                        Desconectar
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if is_granted('ROLE_ATLETA') %}
         <div class="mt-8">
             <div class="flex items-center justify-between mb-4">

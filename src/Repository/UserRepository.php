@@ -37,6 +37,20 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Returns all users that have a valid (non-revoked) Fitbit token.
+     *
+     * @return User[]
+     */
+    public function findUsersWithValidFitbitToken(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->join('u.fitbitToken', 'ft')
+            ->where('ft.isValid = true')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Returns all athletes linked to the given coach via the CoachAthlete join entity.
      *
      * @return User[]

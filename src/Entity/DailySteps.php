@@ -28,6 +28,9 @@ class DailySteps
     #[ORM\Column(options: ['default' => 0])]
     private int $steps = 0;
 
+    #[ORM\Column(length: 20, options: ['default' => 'manual'])]
+    private string $source = 'manual';
+
     public function getId(): ?int
     {
         return $this->id;
@@ -65,6 +68,18 @@ class DailySteps
     public function setSteps(int $steps): static
     {
         $this->steps = $steps;
+
+        return $this;
+    }
+
+    public function getSource(): string
+    {
+        return $this->source;
+    }
+
+    public function setSource(string $source): static
+    {
+        $this->source = $source;
 
         return $this;
     }

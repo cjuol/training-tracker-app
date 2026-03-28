@@ -51,6 +51,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?string $profilePictureFilename = null;
 
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?FitbitToken $fitbitToken = null;
+
     public function __construct()
     {
         $this->coachRelations = new ArrayCollection();
@@ -199,5 +202,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    public function getFitbitToken(): ?FitbitToken
+    {
+        return $this->fitbitToken;
+    }
+
+    public function setFitbitToken(?FitbitToken $fitbitToken): static
+    {
+        // set/unset the owning side of the relation if necessary
+        if ($fitbitToken === null && $this->fitbitToken !== null) {
+            $this->fitbitToken->setUser(null);
+        }
+
+        if ($fitbitToken !== null && $fitbitToken->getUser() !== $this) {
+            $fitbitToken->setUser($this);
+        }
+
+        $this->fitbitToken = $fitbitToken;
+
+        return $this;
+    }
+
+    public function hasFitbitConnected(): bool
+    {
+        return $this->fitbitToken !== null && $this->fitbitToken->isValid();
     }
 }
