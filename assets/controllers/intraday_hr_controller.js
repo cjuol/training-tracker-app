@@ -11,17 +11,10 @@ export default class extends Controller {
   static values  = { url: String }
 
   _chart  = null
-  _loaded = false
 
-  toggle() {
-    const panel    = this.panelTarget
-    const isHidden = panel.classList.contains("hidden")
-    panel.classList.toggle("hidden", !isHidden)
-
-    if (isHidden && !this._loaded) {
-      this._loaded = true
-      this._load()
-    }
+  connect() {
+    this.panelTarget.classList.remove("hidden")
+    this._load()
   }
 
   disconnect() {

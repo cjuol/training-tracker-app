@@ -69,13 +69,6 @@
         >
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Zonas cardíacas — últimos 30 días</h2>
 
-            {# Hidden trigger for auto-load: panel starts hidden, script clicks this button after Stimulus connects #}
-            <button type="button" id="cardio-auto-trigger"
-                    class="sr-only"
-                    data-action="click->cardio-detail#toggle">
-                Cargar gráfica
-            </button>
-
             <div data-cardio-detail-target="panel" class="hidden">
                 <div class="relative h-64">
                     <canvas data-cardio-detail-target="canvas"></canvas>
@@ -90,13 +83,6 @@
             </div>
         </div>
 
-        <script>
-            setTimeout(function() {
-                var btn = document.getElementById('cardio-auto-trigger');
-                if (btn) btn.click();
-            }, 0);
-        </script>
-
         {# Intraday HR chart — last 24 hours #}
         <div
             data-controller="intraday-hr"
@@ -104,12 +90,6 @@
             class="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
         >
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">FC intradía — últimas 24 horas</h2>
-
-            <button type="button" id="intraday-auto-trigger"
-                    class="sr-only"
-                    data-action="click->intraday-hr#toggle">
-                Cargar gráfica intradía
-            </button>
 
             <div data-intraday-hr-target="panel" class="hidden">
                 <div class="relative h-48">
@@ -121,13 +101,6 @@
                 </p>
             </div>
         </div>
-
-        <script>
-            setTimeout(function() {
-                var btn = document.getElementById('intraday-auto-trigger');
-                if (btn) btn.click();
-            }, 0);
-        </script>
 
         {% endif %}
 
