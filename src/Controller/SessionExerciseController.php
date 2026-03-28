@@ -21,6 +21,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SessionExerciseController extends AbstractController
 {
     private const CSRF_REORDER = 'reorder_session_exercises';
+    private const CSRF_MOVE = 'move_session_exercise';
 
     #[Route('/new', name: 'session_exercise_new', methods: ['GET', 'POST'])]
     public function new(
@@ -134,6 +135,42 @@ class SessionExerciseController extends AbstractController
         $entityManager->flush();
 
         return new JsonResponse(['success' => true]);
+    }
+
+    #[Route('/{id}/move', name: 'session_exercise_move', methods: ['POST'])]
+    public function move(
+        Request $request,
+        int $sessionId,
+        SessionExercise $sessionExercise,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $targetSession = $this->getSessionOrDeny($sessionId, $entityManager);
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!$this->isCsrfTokenValid(self::CSRF_MOVE, $data['_token'] ?? '')) {
+            return $this->json(['error' => 'Token CSRF inválido'], 403);
+        }
+
+        $sourceMesocycle = $sessionExercise->getWorkoutSession()->getMesocycle();
+        $targetMesocycle = $targetSession->getMesocycle();
+
+        if ($sourceMesocycle->getId() !== $targetMesocycle->getId()) {
+            return $this->json(['error' => 'Las sesiones pertenecen a mesociclos distintos'], 403);
+        }
+
+        $sessionExercise->setWorkoutSession($targetSession);
+
+        if (null !== $sessionExercise->getSuperseriesGroup()) {
+            $sessionExercise->setSuperseriesGroup(null);
+        }
+
+        $newOrderIndex = $targetSession->getSessionExercises()->count() + 1;
+        $sessionExercise->setOrderIndex($newOrderIndex);
+
+        $entityManager->flush();
+
+        return $this->json(['success' => true]);
     }
 
     private function getSessionOrDeny(int $sessionId, EntityManagerInterface $entityManager): WorkoutSession

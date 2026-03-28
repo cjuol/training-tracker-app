@@ -43,12 +43,15 @@
     <div class="p-3"
          data-controller="sortable"
          data-sortable-url-value="{{ reorderUrl }}"
-         data-sortable-csrf-value="{{ csrf_token('reorder_session_exercises') }}">
+         data-sortable-csrf-value="{{ csrf_token('reorder_session_exercises') }}"
+         data-sortable-move-url-value="{{ path('session_exercise_move', {sessionId: session.id, id: '__ID__'}) }}"
+         data-sortable-session-id-value="{{ session.id }}"
+         data-sortable-movecsrf-value="{{ csrf_token('move_session_exercise') }}">
         {% set exercises = session.orderedExercises %}
         {% if exercises is empty %}
-            <p class="text-xs text-gray-400 dark:text-gray-500 text-center py-3">No hay ejercicios en esta sesión todavía.</p>
+            <div class="text-xs text-gray-400 dark:text-gray-500 text-center py-3 min-h-[3rem]">No hay ejercicios en esta sesión todavía.</div>
         {% else %}
-            <div class="space-y-2">
+            <div class="space-y-2" data-sortable-target="list">
                 {% for sessionExercise in exercises %}
                     {% include 'mesocycle/_exercise_row.html.twig' with {sessionExercise: sessionExercise, session: session} %}
                 {% endfor %}
