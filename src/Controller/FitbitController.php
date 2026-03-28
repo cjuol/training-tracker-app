@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Exception\FitbitTokenRevokedException;
 use App\Service\Fitbit\FitbitOAuthService;
+use App\Service\Fitbit\FitbitSyncService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -17,7 +20,35 @@ class FitbitController extends AbstractController
 {
     public function __construct(
         private readonly FitbitOAuthService $oauthService,
+        private readonly FitbitSyncService $syncService,
     ) {}
+
+    #[Route('/sync', name: 'fitbit_sync', methods: ['POST'])]
+    public function sync(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('fitbit_sync', $request->request->get('_token'))) {
+            return new JsonResponse(['synced' => false, 'error' => 'Token CSRF inválido.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $token = $user->getFitbitToken();
+
+        if (!$token || !$token->isValid()) {
+            return new JsonResponse(['synced' => false, 'error' => 'Token Fitbit no válido. Vuelve a conectar tu cuenta.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $this->syncService->syncUser($user, new \DateTimeImmutable('today'));
+            $this->syncService->syncUser($user, new \DateTimeImmutable('yesterday'));
+
+            return new JsonResponse(['synced' => true, 'message' => 'Sincronizados 2 días correctamente.']);
+        } catch (FitbitTokenRevokedException $e) {
+            return new JsonResponse(['synced' => false, 'error' => 'Token Fitbit revocado. Vuelve a conectar tu cuenta.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['synced' => false, 'error' => 'Error durante la sincronización: ' . $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+    }
 
     #[Route('/connect', name: 'fitbit_connect', methods: ['GET'])]
     public function connect(): Response

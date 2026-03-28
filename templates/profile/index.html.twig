@@ -65,39 +65,162 @@
             {% endif %}
         </div>
 
-        {# ── Steps progress ring ──────────────────────────────────────────────── #}
+        {# ── Fitbit health circles (steps + sleep + cardio) ──────────────────── #}
         {% set circumference = 282.74 %}
+        {# Steps ratio #}
         {% if todaySteps is not null and stepsTarget is not null and stepsTarget > 0 %}
-            {% set ratio = min(todaySteps / stepsTarget, 1.0) %}
-            {% set dashoffset = circumference * (1 - ratio) %}
+            {% set stepsRatio = min(todaySteps / stepsTarget, 1.0) %}
+            {% set stepsDashoffset = circumference * (1 - stepsRatio) %}
         {% else %}
-            {% set dashoffset = circumference %}
+            {% set stepsDashoffset = circumference %}
         {% endif %}
-        <div class="mb-6 flex flex-col items-center">
-            <div class="relative w-28 h-28">
-                <svg width="112" height="112" viewBox="0 0 120 120" class="-rotate-90">
-                    <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
-                            class="text-gray-200 dark:text-gray-700"/>
-                    <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
-                            stroke-linecap="round"
-                            class="text-indigo-500 dark:text-indigo-400 transition-all duration-500"
-                            stroke-dasharray="{{ circumference }}"
-                            stroke-dashoffset="{{ dashoffset }}"/>
-                </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center rotate-0">
-                    <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ todaySteps }}</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">pasos</span>
+        {# Sleep ratio #}
+        {% set sleepMinutesVal = sleepMinutes is defined ? sleepMinutes : 0 %}
+        {% set sleepTargetVal  = sleepTarget  is defined ? sleepTarget  : 480 %}
+        {% set sleepRatio = sleepTargetVal > 0 ? min(sleepMinutesVal / sleepTargetVal, 1.0) : 0 %}
+        {% set sleepDashoffset = circumference * (1 - sleepRatio) %}
+        {% set sleepHours = (sleepMinutesVal // 60) %}
+        {% set sleepMins  = (sleepMinutesVal % 60) %}
+        {# Cardio ratio #}
+        {% set cardioMinutesVal = cardioMinutes is defined ? cardioMinutes : 0 %}
+        {% set cardioTargetVal  = cardioTarget  is defined ? cardioTarget  : 22 %}
+        {% set cardioRatio = cardioTargetVal > 0 ? min(cardioMinutesVal / cardioTargetVal, 1.0) : 0 %}
+        {% set cardioDashoffset = circumference * (1 - cardioRatio) %}
+
+        <div class="mb-6 flex flex-wrap gap-8 justify-center items-start">
+
+            {# Steps circle #}
+            <div class="flex flex-col items-center">
+                <div class="relative w-28 h-28">
+                    <svg width="112" height="112" viewBox="0 0 120 120" class="-rotate-90">
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                class="text-gray-200 dark:text-gray-700"/>
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                stroke-linecap="round"
+                                class="text-indigo-500 dark:text-indigo-400 transition-all duration-500"
+                                stroke-dasharray="{{ circumference }}"
+                                stroke-dashoffset="{{ stepsDashoffset }}"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ todaySteps }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">pasos</span>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    {% if stepsTarget is not null and stepsTarget > 0 %}
+                        de {{ stepsTarget|number_format(0, ',', '.') }} hoy
+                    {% else %}
+                        pasos hoy
+                    {% endif %}
+                </p>
+                <a href="{{ path('daily_steps_index') }}"
+                   class="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Ver pasos &rarr;</a>
+            </div>
+
+            {# Sleep circle — only if fitbitToken valid #}
+            {% set fitbitTokenForCircles = app.user.fitbitToken %}
+            {% if fitbitTokenForCircles and fitbitTokenForCircles.isValid %}
+            <div
+                class="flex flex-col items-center"
+                data-controller="sleep-chart"
+                data-sleep-chart-url-value="{{ path('profile_sleep_data') }}"
+            >
+                <button
+                    type="button"
+                    data-action="click->sleep-chart#toggle"
+                    class="relative w-28 h-28 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full"
+                    aria-label="Ver historial de sueño"
+                >
+                    <svg width="112" height="112" viewBox="0 0 120 120" class="-rotate-90">
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                class="text-gray-200 dark:text-gray-700"/>
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                stroke-linecap="round"
+                                class="text-blue-500 dark:text-blue-400 transition-all duration-500"
+                                stroke-dasharray="{{ circumference }}"
+                                stroke-dashoffset="{{ sleepDashoffset }}"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        {% if sleepMinutesVal > 0 %}
+                            <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ sleepHours }}h{{ sleepMins }}m</span>
+                        {% else %}
+                            <span class="text-base font-bold text-gray-400 dark:text-gray-500">—</span>
+                        {% endif %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">sueño</span>
+                    </div>
+                </button>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">de 8h anoche</p>
+                <button type="button" data-action="click->sleep-chart#toggle"
+                        class="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Ver historial
+                </button>
+                {# Expandable panel #}
+                <div data-sleep-chart-target="panel"
+                     class="hidden mt-4 w-72 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                    <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">Sueño — últimos 7 días</h4>
+                    <div class="relative h-48">
+                        <canvas data-sleep-chart-target="canvas"></canvas>
+                    </div>
+                    <p data-sleep-chart-target="empty"
+                       class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">Sin datos de sueño aún.</p>
                 </div>
             </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {% if stepsTarget is not null and stepsTarget > 0 %}
-                    de {{ stepsTarget|number_format(0, ',', '.') }} pasos hoy
-                {% else %}
-                    pasos hoy
-                {% endif %}
-            </p>
-            <a href="{{ path('daily_steps_index') }}"
-               class="mt-1 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Ver mis pasos &rarr;</a>
+            {% endif %}
+
+            {# Cardio circle — only if fitbitToken valid #}
+            {% if fitbitTokenForCircles and fitbitTokenForCircles.isValid %}
+            <div
+                class="flex flex-col items-center"
+                data-controller="cardio-detail"
+                data-cardio-detail-url-value="{{ path('profile_cardio_data') }}"
+            >
+                <button
+                    type="button"
+                    data-action="click->cardio-detail#toggle"
+                    class="relative w-28 h-28 focus:outline-none focus:ring-2 focus:ring-orange-400 rounded-full"
+                    aria-label="Ver historial cardio"
+                >
+                    <svg width="112" height="112" viewBox="0 0 120 120" class="-rotate-90">
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                class="text-gray-200 dark:text-gray-700"/>
+                        <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                                stroke-linecap="round"
+                                class="text-orange-500 dark:text-orange-400 transition-all duration-500"
+                                stroke-dasharray="{{ circumference }}"
+                                stroke-dashoffset="{{ cardioDashoffset }}"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        {% if cardioMinutesVal > 0 %}
+                            <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ cardioMinutesVal }}m</span>
+                        {% else %}
+                            <span class="text-base font-bold text-gray-400 dark:text-gray-500">—</span>
+                        {% endif %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">cardio</span>
+                    </div>
+                </button>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    {% if restingHR is defined and restingHR %}FC reposo: {{ restingHR }} bpm{% else %}de 22min objetivo{% endif %}
+                </p>
+                <button type="button" data-action="click->cardio-detail#toggle"
+                        class="mt-1 text-xs text-orange-600 dark:text-orange-400 hover:underline">
+                    Ver zonas
+                </button>
+                {# Expandable panel #}
+                <div data-cardio-detail-target="panel"
+                     class="hidden mt-4 w-72 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                    <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Zonas cardíacas — últimos 7 días</h4>
+                    {% if restingHR is defined and restingHR %}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">FC en reposo hoy: <span class="font-semibold text-gray-800 dark:text-gray-200">{{ restingHR }} bpm</span></p>
+                    {% endif %}
+                    <div class="relative h-48">
+                        <canvas data-cardio-detail-target="canvas"></canvas>
+                    </div>
+                    <p data-cardio-detail-target="empty"
+                       class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">Sin datos cardíacos aún.</p>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
         {# ── Latest measurements summary card ────────────────────────────────── #}
@@ -240,6 +363,28 @@
                     <span class="text-xs text-gray-500 dark:text-gray-400">
                         desde {{ fitbitToken.connectedAt|date('d/m/Y') }}
                     </span>
+                </div>
+                <div
+                    data-controller="fitbit-sync"
+                    data-fitbit-sync-url-value="{{ path('fitbit_sync') }}"
+                    data-fitbit-sync-csrf-value="{{ csrf_token('fitbit_sync') }}"
+                    class="mb-4"
+                >
+                    <button
+                        type="button"
+                        data-action="click->fitbit-sync#sync"
+                        data-fitbit-sync-target="button"
+                        class="inline-flex items-center gap-2 rounded-md bg-[#00B0B9] px-4 py-2 text-sm font-semibold text-white hover:bg-[#009aa3] disabled:opacity-60 disabled:cursor-not-allowed transition"
+                    >
+                        <span data-fitbit-sync-target="label">Sincronizar ahora</span>
+                        <span data-fitbit-sync-target="spinner" class="hidden">
+                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                            </svg>
+                        </span>
+                    </button>
+                    <p data-fitbit-sync-target="message" class="mt-2 text-sm hidden"></p>
                 </div>
                 <form method="post" action="{{ path('fitbit_disconnect') }}"
                       onsubmit="return confirm('¿Desconectar Fitbit? Los datos ya sincronizados se conservarán.')">

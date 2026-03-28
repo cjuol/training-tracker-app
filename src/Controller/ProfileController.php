@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\BodyMeasurement;
+use App\Entity\DailyHeartRate;
+use App\Entity\SleepLog;
 use App\Entity\User;
 use App\Form\BodyMeasurementType;
 use App\Repository\AssignedMesocycleRepository;
 use App\Repository\BodyMeasurementRepository;
+use App\Repository\DailyHeartRateRepository;
 use App\Repository\DailyStepsRepository;
+use App\Repository\SleepLogRepository;
 use App\Repository\WorkoutLogRepository;
 use App\Security\Voter\BodyMeasurementVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -48,6 +52,8 @@ class ProfileController extends AbstractController
         AssignedMesocycleRepository $assignedRepo,
         DailyStepsRepository $dailyStepsRepo,
         WorkoutLogRepository $workoutLogRepo,
+        SleepLogRepository $sleepLogRepo,
+        DailyHeartRateRepository $heartRateRepo,
     ): Response {
         /** @var User $athlete */
         $athlete = $this->getUser();
@@ -65,6 +71,26 @@ class ProfileController extends AbstractController
 
         $recentHistory = $workoutLogRepo->findRecentByUser($athlete, 10);
 
+        $fitbitToken = $athlete->getFitbitToken();
+        $sleepMinutes = 0;
+        $cardioMinutes = 0;
+        $restingHR = null;
+
+        if ($fitbitToken && $fitbitToken->isValid()) {
+            $lastNightSleep = $sleepLogRepo->findByUserAndDate($athlete, new \DateTimeImmutable('yesterday'));
+            $sleepMinutes = $lastNightSleep?->getDurationMinutes() ?? 0;
+
+            $todayHR = $heartRateRepo->findByUserAndDate($athlete, new \DateTimeImmutable('today'));
+            $restingHR = $todayHR?->getRestingHeartRate();
+            if ($todayHR) {
+                foreach ($todayHR->getZones() as $zone) {
+                    if (in_array($zone['name'] ?? '', ['Cardio', 'Peak'], true)) {
+                        $cardioMinutes += (int) ($zone['minutes'] ?? 0);
+                    }
+                }
+            }
+        }
+
         return $this->render('profile/index.html.twig', [
             'measurements' => $measurements,
             'total' => $total,
@@ -73,6 +99,12 @@ class ProfileController extends AbstractController
             'todaySteps' => $todaySteps,
             'stepsTarget' => $stepsTarget,
             'recentHistory' => $recentHistory,
+            'fitbitToken' => $fitbitToken,
+            'sleepMinutes' => $sleepMinutes,
+            'sleepTarget' => 480,
+            'cardioMinutes' => $cardioMinutes,
+            'cardioTarget' => 22,
+            'restingHR' => $restingHR,
         ]);
     }
 
@@ -301,6 +333,64 @@ class ProfileController extends AbstractController
             'perPage' => self::PER_PAGE,
             'hasMore' => ($page * self::PER_PAGE) < $total,
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Fitbit JSON data endpoints
+    // -------------------------------------------------------------------------
+
+    #[Route('/sleep-data', name: 'profile_sleep_data', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function sleepData(SleepLogRepository $sleepLogRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $records = $sleepLogRepo->findRecentByUser($user, 7);
+        $records = array_reverse($records);
+
+        $data = array_map(static function (SleepLog $log): array {
+            $stages = $log->getStages() ?? [];
+            $hasStages = !empty($stages);
+            $entry = [
+                'date'            => $log->getDate()->format('Y-m-d'),
+                'durationMinutes' => $log->getDurationMinutes(),
+            ];
+            if ($hasStages) {
+                $entry['stages'] = [
+                    'deep'  => (int) ($stages['deep']['minutes']  ?? $stages['deep']  ?? 0),
+                    'light' => (int) ($stages['light']['minutes'] ?? $stages['light'] ?? 0),
+                    'rem'   => (int) ($stages['rem']['minutes']   ?? $stages['rem']   ?? 0),
+                    'wake'  => (int) ($stages['wake']['minutes']  ?? $stages['wake']  ?? 0),
+                ];
+            }
+
+            return $entry;
+        }, $records);
+
+        return new JsonResponse($data);
+    }
+
+    #[Route('/cardio-data', name: 'profile_cardio_data', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function cardioData(DailyHeartRateRepository $heartRateRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $records = $heartRateRepo->findRecentByUser($user, 7);
+        $records = array_reverse($records);
+
+        $data = array_map(static function (DailyHeartRate $hr): array {
+            return [
+                'date'             => $hr->getDate()->format('Y-m-d'),
+                'restingHeartRate' => $hr->getRestingHeartRate(),
+                'zones'            => array_map(static fn(array $z): array => [
+                    'name'    => $z['name'] ?? '',
+                    'minutes' => (int) ($z['minutes'] ?? 0),
+                ], $hr->getZones() ?? []),
+            ];
+        }, $records);
+
+        return new JsonResponse($data);
     }
 
     // -------------------------------------------------------------------------
