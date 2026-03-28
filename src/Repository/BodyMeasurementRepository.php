@@ -55,6 +55,20 @@ class BodyMeasurementRepository extends ServiceEntityRepository
     }
 
     /**
+     * Returns the single most recent measurement for an athlete, or null.
+     */
+    public function findLatestByAthlete(User $athlete): ?BodyMeasurement
+    {
+        return $this->createQueryBuilder('bm')
+            ->andWhere('bm.athlete = :athlete')
+            ->setParameter('athlete', $athlete)
+            ->orderBy('bm.measurementDate', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Returns the total number of measurements for an athlete.
      */
     public function countByAthlete(User $athlete): int

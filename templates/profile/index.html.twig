@@ -120,14 +120,9 @@
             {# Sleep circle — only if fitbitToken valid #}
             {% set fitbitTokenForCircles = app.user.fitbitToken %}
             {% if fitbitTokenForCircles and fitbitTokenForCircles.isValid %}
-            <div
-                class="flex flex-col items-center"
-                data-controller="sleep-chart"
-                data-sleep-chart-url-value="{{ path('profile_sleep_data') }}"
-            >
-                <button
-                    type="button"
-                    data-action="click->sleep-chart#toggle"
+            <div class="flex flex-col items-center">
+                <a
+                    href="{{ path('profile_sleep') }}"
                     class="relative w-28 h-28 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full"
                     aria-label="Ver historial de sueño"
                 >
@@ -148,35 +143,20 @@
                         {% endif %}
                         <span class="text-xs text-gray-500 dark:text-gray-400">sueño</span>
                     </div>
-                </button>
+                </a>
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">de 8h anoche</p>
-                <button type="button" data-action="click->sleep-chart#toggle"
-                        class="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                <a href="{{ path('profile_sleep') }}"
+                   class="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline">
                     Ver historial
-                </button>
-                {# Expandable panel #}
-                <div data-sleep-chart-target="panel"
-                     class="hidden mt-4 w-72 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                    <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">Sueño — últimos 7 días</h4>
-                    <div class="relative h-48">
-                        <canvas data-sleep-chart-target="canvas"></canvas>
-                    </div>
-                    <p data-sleep-chart-target="empty"
-                       class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">Sin datos de sueño aún.</p>
-                </div>
+                </a>
             </div>
             {% endif %}
 
             {# Cardio circle — only if fitbitToken valid #}
             {% if fitbitTokenForCircles and fitbitTokenForCircles.isValid %}
-            <div
-                class="flex flex-col items-center"
-                data-controller="cardio-detail"
-                data-cardio-detail-url-value="{{ path('profile_cardio_data') }}"
-            >
-                <button
-                    type="button"
-                    data-action="click->cardio-detail#toggle"
+            <div class="flex flex-col items-center">
+                <a
+                    href="{{ path('profile_cardio') }}"
                     class="relative w-28 h-28 focus:outline-none focus:ring-2 focus:ring-orange-400 rounded-full"
                     aria-label="Ver historial cardio"
                 >
@@ -197,27 +177,14 @@
                         {% endif %}
                         <span class="text-xs text-gray-500 dark:text-gray-400">cardio</span>
                     </div>
-                </button>
+                </a>
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
                     {% if restingHR is defined and restingHR %}FC reposo: {{ restingHR }} bpm{% else %}de 22min objetivo{% endif %}
                 </p>
-                <button type="button" data-action="click->cardio-detail#toggle"
-                        class="mt-1 text-xs text-orange-600 dark:text-orange-400 hover:underline">
+                <a href="{{ path('profile_cardio') }}"
+                   class="mt-1 text-xs text-orange-600 dark:text-orange-400 hover:underline">
                     Ver zonas
-                </button>
-                {# Expandable panel #}
-                <div data-cardio-detail-target="panel"
-                     class="hidden mt-4 w-72 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                    <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Zonas cardíacas — últimos 7 días</h4>
-                    {% if restingHR is defined and restingHR %}
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">FC en reposo hoy: <span class="font-semibold text-gray-800 dark:text-gray-200">{{ restingHR }} bpm</span></p>
-                    {% endif %}
-                    <div class="relative h-48">
-                        <canvas data-cardio-detail-target="canvas"></canvas>
-                    </div>
-                    <p data-cardio-detail-target="empty"
-                       class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">Sin datos cardíacos aún.</p>
-                </div>
+                </a>
             </div>
             {% endif %}
 
@@ -245,88 +212,13 @@
                 {% endfor %}
             </div>
         </div>
-        {% endif %}
-
-        {# ── Gráfica de evolución ──────────────────────────────────────────────── #}
-        {% if measurements|length > 1 %}
-        <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
-             data-controller="measurement-chart"
-             data-measurement-chart-url-value="{{ path('profile_measurement_list') }}"
-             data-measurement-chart-fields-value="{{ ['weight_kg', 'chest_cm', 'waist_cm', 'hips_cm', 'arms_cm']|json_encode }}">
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Evolución de medidas</h3>
-            <div class="relative h-64">
-                <canvas data-measurement-chart-target="canvas"></canvas>
-            </div>
-        </div>
-        {% endif %}
-
-        {# Measurements table with Stimulus pagination #}
-        <div
-            data-controller="measurement-pagination"
-            data-measurement-pagination-url-value="{{ path('profile_measurement_list') }}"
-            data-measurement-pagination-edit-url-value="{{ path('profile_measurement_edit', {id: '__ID__'}) }}"
-            data-measurement-pagination-delete-url-value="{{ path('profile_measurement_delete', {id: '__ID__'}) }}"
-        >
-            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Peso (kg)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pecho (cm)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Cintura (cm)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Caderas (cm)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Brazos (cm)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Notas</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody
-                        class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800"
-                        data-measurement-pagination-target="tableBody"
-                    >
-                        {# Rows injected by Stimulus controller #}
-                    </tbody>
-                </table>
-            </div>
-
-            {# Empty state (shown by Stimulus when no items) #}
-            <div
-                class="hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-12 text-center shadow-sm mt-2"
-                data-measurement-pagination-target="emptyState"
-            >
-                <p class="text-sm text-gray-500 dark:text-gray-400">No tienes mediciones registradas todavía.</p>
-                <a href="{{ path('profile_measurement_new') }}"
-                   class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">
-                    + Añadir primera medición
+            <div class="mt-3 text-right">
+                <a href="{{ path('profile_measurements') }}"
+                   class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Ver historial completo &rarr;
                 </a>
             </div>
-
-            {# Pagination controls #}
-            <nav class="mt-4 flex items-center justify-between" data-measurement-pagination-target="pagination">
-                <div class="text-sm text-gray-500 dark:text-gray-400">
-                    <span data-measurement-pagination-target="pageInfo">Cargando...</span>
-                </div>
-                <div class="flex gap-2">
-                    <button
-                        type="button"
-                        data-measurement-pagination-target="prevButton"
-                        data-action="click->measurement-pagination#prevPage"
-                        class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        Anterior
-                    </button>
-                    <button
-                        type="button"
-                        data-measurement-pagination-target="nextButton"
-                        data-action="click->measurement-pagination#nextPage"
-                        class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            </nav>
-        </div>
+        {% endif %}
 
 
         {# ── Fitbit Integration ───────────────────────────────────────────────── #}

@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historial de Mediciones — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {# Header row #}
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <a href="{{ path('profile_index') }}"
+                   class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-1">
+                    &larr; Volver al perfil
+                </a>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Historial de Mediciones</h1>
+            </div>
+            {% if is_granted('ROLE_ATLETA') %}
+            <a href="{{ path('profile_measurement_new') }}"
+               class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition">
+                + Nueva medición
+            </a>
+            {% endif %}
+        </div>
+
+        {# ── Gráfica de evolución ──────────────────────────────────────────────── #}
+        {% if total is defined and total > 1 %}
+        <div class="mt-6 mb-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
+             data-controller="measurement-chart"
+             data-measurement-chart-url-value="{{ path('profile_measurement_list') }}"
+             data-measurement-chart-fields-value="{{ ['weight_kg', 'chest_cm', 'waist_cm', 'hips_cm', 'arms_cm']|json_encode }}">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Evolución de medidas</h3>
+            <div class="relative h-64">
+                <canvas data-measurement-chart-target="canvas"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Measurements table with Stimulus pagination #}
+        <div
+            data-controller="measurement-pagination"
+            data-measurement-pagination-url-value="{{ path('profile_measurement_list') }}"
+            data-measurement-pagination-edit-url-value="{{ path('profile_measurement_edit', {id: '__ID__'}) }}"
+            data-measurement-pagination-delete-url-value="{{ path('profile_measurement_delete', {id: '__ID__'}) }}"
+        >
+            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-900/50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Peso (kg)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pecho (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Cintura (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Caderas (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Brazos (cm)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Notas</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody
+                        class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800"
+                        data-measurement-pagination-target="tableBody"
+                    >
+                        {# Rows injected by Stimulus controller #}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Empty state (shown by Stimulus when no items) #}
+            <div
+                class="hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-12 text-center shadow-sm mt-2"
+                data-measurement-pagination-target="emptyState"
+            >
+                <p class="text-sm text-gray-500 dark:text-gray-400">No tienes mediciones registradas todavía.</p>
+                <a href="{{ path('profile_measurement_new') }}"
+                   class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">
+                    + Añadir primera medición
+                </a>
+            </div>
+
+            {# Pagination controls #}
+            <nav class="mt-4 flex items-center justify-between" data-measurement-pagination-target="pagination">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <span data-measurement-pagination-target="pageInfo">Cargando...</span>
+                </div>
+                <div class="flex gap-2">
+                    <button
+                        type="button"
+                        data-measurement-pagination-target="prevButton"
+                        data-action="click->measurement-pagination#prevPage"
+                        class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        type="button"
+                        data-measurement-pagination-target="nextButton"
+                        data-action="click->measurement-pagination#nextPage"
+                        class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+    </main>
+</div>
+{% endblock %}

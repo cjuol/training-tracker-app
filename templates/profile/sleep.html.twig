@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historial de Sueño — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {# Back link #}
+        <a href="{{ path('profile_index') }}"
+           class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-6">
+            &larr; Volver al perfil
+        </a>
+
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Historial de Sueño</h1>
+
+        {# Fitbit not connected guard #}
+        {% if not fitbitToken or not fitbitToken.isValid %}
+        <div class="rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 p-6 text-center">
+            <p class="text-sm text-yellow-800 dark:text-yellow-300 mb-3">Conecta tu Fitbit para ver el historial de sueño.</p>
+            <a href="{{ path('fitbit_connect') }}"
+               class="inline-flex items-center rounded-md bg-[#00B0B9] px-4 py-2 text-sm font-semibold text-white hover:bg-[#009aa3]">
+                Conectar Fitbit
+            </a>
+        </div>
+        {% else %}
+
+        {# Sleep ring summary (last night) #}
+        {% set circumference = 282.74 %}
+        {% set sleepMinutesVal = sleepMinutes is defined ? sleepMinutes : 0 %}
+        {% set sleepTargetVal  = sleepTarget  is defined ? sleepTarget  : 480 %}
+        {% set sleepRatio = sleepTargetVal > 0 ? min(sleepMinutesVal / sleepTargetVal, 1.0) : 0 %}
+        {% set sleepDashoffset = circumference * (1 - sleepRatio) %}
+        {% set sleepHours = (sleepMinutesVal // 60) %}
+        {% set sleepMins  = (sleepMinutesVal % 60) %}
+
+        <div class="flex flex-col items-center mb-8">
+            <div class="relative w-28 h-28">
+                <svg width="112" height="112" viewBox="0 0 120 120" class="-rotate-90">
+                    <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                            class="text-gray-200 dark:text-gray-700"/>
+                    <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" stroke-width="10"
+                            stroke-linecap="round"
+                            class="text-blue-500 dark:text-blue-400 transition-all duration-500"
+                            stroke-dasharray="{{ circumference }}"
+                            stroke-dashoffset="{{ sleepDashoffset }}"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    {% if sleepMinutesVal > 0 %}
+                        <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ sleepHours }}h{{ sleepMins }}m</span>
+                    {% else %}
+                        <span class="text-base font-bold text-gray-400 dark:text-gray-500">—</span>
+                    {% endif %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">anoche</span>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Objetivo: 8h por noche</p>
+        </div>
+
+        {# Full chart — sleep-chart Stimulus controller, auto-loaded via inline script #}
+        <div
+            data-controller="sleep-chart"
+            data-sleep-chart-url-value="{{ dataUrl }}"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
+        >
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Sueño — últimos 30 días</h2>
+
+            {# Hidden trigger for auto-load: panel starts hidden, script clicks this button after Stimulus connects #}
+            <button type="button" id="sleep-auto-trigger"
+                    class="sr-only"
+                    data-action="click->sleep-chart#toggle">
+                Cargar gráfica
+            </button>
+
+            <div data-sleep-chart-target="panel" class="hidden">
+                <div class="relative h-64">
+                    <canvas data-sleep-chart-target="canvas"></canvas>
+                </div>
+                <p data-sleep-chart-target="empty"
+                   class="hidden text-xs text-center text-gray-400 dark:text-gray-500 mt-4">
+                    Sin datos de sueño aún.
+                </p>
+            </div>
+        </div>
+
+        <script>
+            setTimeout(function() {
+                var btn = document.getElementById('sleep-auto-trigger');
+                if (btn) btn.click();
+            }, 0);
+        </script>
+
+        {% endif %}
+
+    </main>
+</div>
+{% endblock %}
