@@ -88,25 +88,35 @@ class SetLogRepository extends ServiceEntityRepository
         \DateTimeInterface $from,
         \DateTimeInterface $to,
     ): array {
-        return $this->createQueryBuilder('sl')
-            ->select('DATE(sl.loggedAt) AS date, SUM(sl.weight * sl.reps) AS load')
-            ->join('sl.workoutLog', 'wl')
-            ->join('sl.sessionExercise', 'se')
-            ->join('se.exercise', 'e')
-            ->andWhere('wl.athlete = :user')
-            ->andWhere('e = :exercise')
-            ->andWhere('sl.loggedAt >= :from')
-            ->andWhere('sl.loggedAt <= :to')
-            ->andWhere('sl.weight IS NOT NULL')
-            ->andWhere('sl.reps IS NOT NULL')
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
-            ->setParameter('user', $user)
-            ->setParameter('exercise', $exercise)
-            ->setParameter('from', $from)
-            ->setParameter('to', $to)
-            ->getQuery()
-            ->getArrayResult();
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = '
+            SELECT CAST(sl.logged_at AS DATE) AS date,
+                   SUM(sl.weight * sl.reps) AS load
+            FROM set_log sl
+            JOIN workout_log wl ON sl.workout_log_id = wl.id
+            JOIN session_exercise se ON sl.session_exercise_id = se.id
+            JOIN exercise e ON se.exercise_id = e.id
+            WHERE wl.athlete_id = :userId
+              AND e.id = :exerciseId
+              AND sl.logged_at >= :from
+              AND sl.logged_at <= :to
+              AND sl.weight IS NOT NULL
+              AND sl.reps IS NOT NULL
+            GROUP BY CAST(sl.logged_at AS DATE)
+            ORDER BY date ASC
+        ';
+
+        $rows = $conn->executeQuery($sql, [
+            'userId'     => $user->getId(),
+            'exerciseId' => $exercise->getId(),
+            'from'       => $from->format('Y-m-d H:i:s'),
+            'to'         => $to->format('Y-m-d H:i:s'),
+        ])->fetchAllAssociative();
+
+        return array_map(
+            fn(array $r) => ['date' => (string) $r['date'], 'load' => (float) $r['load']],
+            $rows,
+        );
     }
 
     /**
@@ -119,33 +129,34 @@ class SetLogRepository extends ServiceEntityRepository
     {
         $from = new \DateTimeImmutable('-' . $weeks . ' weeks');
 
-        $rows = $this->createQueryBuilder('sl')
-            ->select(
-                'YEAR(sl.loggedAt) AS yr',
-                'WEEK(sl.loggedAt) AS wk',
-                'e.muscleGroup AS muscleGroup',
-                'SUM(sl.weight * sl.reps) AS tonnage',
-            )
-            ->join('sl.workoutLog', 'wl')
-            ->join('sl.sessionExercise', 'se')
-            ->join('se.exercise', 'e')
-            ->andWhere('wl.athlete = :user')
-            ->andWhere('sl.loggedAt >= :from')
-            ->andWhere('sl.weight IS NOT NULL')
-            ->andWhere('sl.reps IS NOT NULL')
-            ->andWhere('e.muscleGroup IS NOT NULL')
-            ->groupBy('yr, wk, e.muscleGroup')
-            ->orderBy('yr', 'ASC')
-            ->addOrderBy('wk', 'ASC')
-            ->setParameter('user', $user)
-            ->setParameter('from', $from)
-            ->getQuery()
-            ->getArrayResult();
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = '
+            SELECT EXTRACT(ISOYEAR FROM sl.logged_at) AS yr,
+                   EXTRACT(WEEK FROM sl.logged_at)    AS wk,
+                   e.muscle_group                     AS muscle_group,
+                   SUM(sl.weight * sl.reps)           AS tonnage
+            FROM set_log sl
+            JOIN workout_log wl ON sl.workout_log_id = wl.id
+            JOIN session_exercise se ON sl.session_exercise_id = se.id
+            JOIN exercise e ON se.exercise_id = e.id
+            WHERE wl.athlete_id = :userId
+              AND sl.logged_at >= :from
+              AND sl.weight IS NOT NULL
+              AND sl.reps IS NOT NULL
+              AND e.muscle_group IS NOT NULL
+            GROUP BY yr, wk, e.muscle_group
+            ORDER BY yr ASC, wk ASC
+        ';
+
+        $rows = $conn->executeQuery($sql, [
+            'userId' => $user->getId(),
+            'from'   => $from->format('Y-m-d H:i:s'),
+        ])->fetchAllAssociative();
 
         return array_map(
             fn(array $r) => [
                 'week'        => $r['yr'] . '-W' . str_pad((string) $r['wk'], 2, '0', STR_PAD_LEFT),
-                'muscleGroup' => $r['muscleGroup'],
+                'muscleGroup' => $r['muscle_group'],
                 'tonnage'     => (float) $r['tonnage'],
             ],
             $rows,
