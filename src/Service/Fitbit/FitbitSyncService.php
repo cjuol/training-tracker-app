@@ -6,14 +6,18 @@ namespace App\Service\Fitbit;
 
 use App\Entity\DailyHeartRate;
 use App\Entity\DailySteps;
+use App\Entity\DailyWellnessMetrics;
 use App\Entity\FitbitActivity;
 use App\Entity\FitbitToken;
 use App\Entity\SleepLog;
 use App\Entity\User;
 use App\Repository\DailyHeartRateRepository;
 use App\Repository\DailyStepsRepository;
+use App\Repository\DailyWellnessMetricsRepository;
 use App\Repository\FitbitActivityRepository;
 use App\Repository\SleepLogRepository;
+use App\Service\Analytics\AnalyticsModule;
+use App\Service\Analytics\AnalyticsSnapshotService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -27,6 +31,8 @@ class FitbitSyncService
         private readonly FitbitActivityRepository $activityRepo,
         private readonly SleepLogRepository $sleepRepo,
         private readonly LoggerInterface $logger,
+        private readonly AnalyticsSnapshotService $analyticsSnapshotService,
+        private readonly DailyWellnessMetricsRepository $wellnessRepo,
     ) {
     }
 
@@ -44,6 +50,33 @@ class FitbitSyncService
         $this->syncIntradayHeartRate($user, $token, $date);
         $this->syncIntradayHeartRate($user, $token, $yesterday);
         $this->em->flush();
+
+        try {
+            $this->syncHrv($token, \DateTimeImmutable::createFromInterface($date));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Fitbit syncHrv failed, skipping.', ['error' => $e->getMessage()]);
+        }
+        try {
+            $this->syncSpo2($token, \DateTimeImmutable::createFromInterface($date));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Fitbit syncSpo2 failed, skipping.', ['error' => $e->getMessage()]);
+        }
+        try {
+            $this->syncBreathingRate($token, \DateTimeImmutable::createFromInterface($date));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Fitbit syncBreathingRate failed, skipping.', ['error' => $e->getMessage()]);
+        }
+        try {
+            $this->syncSkinTemperature($token, \DateTimeImmutable::createFromInterface($date));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Fitbit syncSkinTemperature failed, skipping.', ['error' => $e->getMessage()]);
+        }
+
+        // Invalidate analytics modules that depend on Fitbit data
+        $this->analyticsSnapshotService->invalidate($user, [
+            AnalyticsModule::RECOVERY_INDEX,
+            AnalyticsModule::SLEEP_SCORING,
+        ]);
     }
 
     private function syncSteps(User $user, FitbitToken $token, \DateTimeInterface $date): void
@@ -162,5 +195,148 @@ class FitbitSyncService
             $record->setDistance(isset($act['distance']) ? (float) $act['distance'] : null);
             $record->setAverageHeartRate(isset($act['averageHeartRate']) ? (int) $act['averageHeartRate'] : null);
         }
+    }
+
+    private function getOrCreateWellness(User $user, \DateTimeImmutable $date): DailyWellnessMetrics
+    {
+        $wellness = $this->wellnessRepo->findByUserAndDate($user, $date);
+        if ($wellness === null) {
+            $wellness = new DailyWellnessMetrics();
+            $wellness->setUser($user);
+            $wellness->setDate($date);
+            $this->em->persist($wellness);
+        }
+
+        return $wellness;
+    }
+
+    private function syncHrv(FitbitToken $token, \DateTimeImmutable $date): void
+    {
+        $dateStr = $date->format('Y-m-d');
+        try {
+            $data = $this->apiClient->get($token, "/1/user/-/hrv/date/{$dateStr}.json");
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'HTTP 403') || str_contains($e->getMessage(), 'HTTP 401')) {
+                $this->logger->debug('Fitbit HRV: access denied, skipping.', ['date' => $dateStr]);
+
+                return;
+            }
+            throw $e;
+        }
+
+        $payload = $data['hrv'][0] ?? null;
+        $dailyRmssd = $payload['value']['dailyRmssd'] ?? null;
+        if ($dailyRmssd === null) {
+            return;
+        }
+
+        $user = $token->getUser();
+        if ($user === null) {
+            return;
+        }
+        $wellness = $this->getOrCreateWellness($user, $date);
+        $wellness->setRmssd((float) $dailyRmssd);
+        $wellness->setDeepRmssd(isset($payload['value']['deepRmssd']) ? (float) $payload['value']['deepRmssd'] : null);
+
+        // Optionally fetch intraday HRV data
+        try {
+            $intradayData = $this->apiClient->get($token, "/1/user/-/hrv/date/{$dateStr}/all.json");
+            $minutes = $intradayData['hrv'][0]['minutes'] ?? null;
+            if (!empty($minutes)) {
+                $wellness->setHrvIntradayData($minutes);
+            }
+        } catch (\RuntimeException) {
+            // Intraday HRV is optional — skip silently on any error
+        }
+
+        $this->em->flush();
+    }
+
+    private function syncSpo2(FitbitToken $token, \DateTimeImmutable $date): void
+    {
+        $dateStr = $date->format('Y-m-d');
+        try {
+            $data = $this->apiClient->get($token, "/1/user/-/spo2/date/{$dateStr}.json");
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'HTTP 403') || str_contains($e->getMessage(), 'HTTP 401')) {
+                $this->logger->debug('Fitbit SpO₂: access denied, skipping.', ['date' => $dateStr]);
+
+                return;
+            }
+            throw $e;
+        }
+
+        $value = $data['value'] ?? null;
+        if ($value === null) {
+            return;
+        }
+
+        $user = $token->getUser();
+        if ($user === null) {
+            return;
+        }
+        $wellness = $this->getOrCreateWellness($user, $date);
+        $wellness->setSpo2Avg(isset($value['avg']) ? (float) $value['avg'] : null);
+        $wellness->setSpo2Min(isset($value['min']) ? (float) $value['min'] : null);
+        $wellness->setSpo2Max(isset($value['max']) ? (float) $value['max'] : null);
+        $this->em->flush();
+    }
+
+    private function syncBreathingRate(FitbitToken $token, \DateTimeImmutable $date): void
+    {
+        $dateStr = $date->format('Y-m-d');
+        try {
+            $data = $this->apiClient->get($token, "/1/user/-/br/date/{$dateStr}.json");
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'HTTP 403') || str_contains($e->getMessage(), 'HTTP 401')) {
+                $this->logger->debug('Fitbit breathing rate: access denied, skipping.', ['date' => $dateStr]);
+
+                return;
+            }
+            throw $e;
+        }
+
+        $payload = $data['br'][0] ?? null;
+        $breathingRate = $payload['value']['breathingRate'] ?? null;
+        if ($breathingRate === null) {
+            return;
+        }
+
+        $user = $token->getUser();
+        if ($user === null) {
+            return;
+        }
+        $wellness = $this->getOrCreateWellness($user, $date);
+        $wellness->setBreathingRate((float) $breathingRate);
+        $this->em->flush();
+    }
+
+    private function syncSkinTemperature(FitbitToken $token, \DateTimeImmutable $date): void
+    {
+        $dateStr = $date->format('Y-m-d');
+        try {
+            $data = $this->apiClient->get($token, "/1/user/-/temp/skin/date/{$dateStr}.json");
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'HTTP 403') || str_contains($e->getMessage(), 'HTTP 401')) {
+                $this->logger->debug('Fitbit skin temperature: access denied, skipping.', ['date' => $dateStr]);
+
+                return;
+            }
+            throw $e;
+        }
+
+        $payload = $data['tempSkin'][0] ?? null;
+        $relativeTemperature = $payload['value']['relativeTemperature'] ?? null;
+        if ($relativeTemperature === null) {
+            return;
+        }
+
+        $user = $token->getUser();
+        if ($user === null) {
+            return;
+        }
+        $wellness = $this->getOrCreateWellness($user, $date);
+        $wellness->setSkinTemperatureRelative((float) $relativeTemperature);
+        $this->em->flush();
     }
 }

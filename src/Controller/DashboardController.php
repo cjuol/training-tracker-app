@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\AssignedMesocycleRepository;
 use App\Repository\WorkoutLogRepository;
+use App\Service\Analytics\AnalyticsSnapshotService;
 use App\Service\CoachDashboardService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +32,7 @@ class DashboardController extends AbstractController
         AssignedMesocycleRepository $assignedRepo,
         WorkoutLogRepository $workoutLogRepo,
         CoachDashboardService $dashboardService,
+        AnalyticsSnapshotService $analyticsSnapshotService,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
@@ -50,9 +52,14 @@ class DashboardController extends AbstractController
                 $sessionInProgress[$sessionId] = $log->getId();
             }
 
+            // Cached analytics verdicts — read-only, no recompute triggered on dashboard load
+            $cachedVerdictMap = $analyticsSnapshotService->getCachedForUsers([$user]);
+            $analyticsVerdicts = $cachedVerdictMap[$user->getId()] ?? [];
+
             $athleteData = [
                 'activeAssignments' => $activeAssignments,
                 'sessionInProgress' => $sessionInProgress,
+                'analyticsVerdicts' => $analyticsVerdicts,
             ];
         }
 

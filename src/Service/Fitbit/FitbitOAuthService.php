@@ -13,7 +13,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class FitbitOAuthService
 {
-    private const SCOPES = 'activity heartrate sleep cardio_fitness';
+    private const SCOPES = 'activity heartrate sleep cardio_fitness oxygen_saturation respiratory_rate temperature';
     private const TOKEN_URL = 'https://api.fitbit.com/oauth2/token';
     private const REVOKE_URL = 'https://api.fitbit.com/oauth2/revoke';
     private const AUTH_URL = 'https://www.fitbit.com/oauth2/authorize';

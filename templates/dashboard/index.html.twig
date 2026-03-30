@@ -92,6 +92,49 @@
                     {% endfor %}
                 </div>
             {% endif %}
+            {# ---- Mi análisis (compact analytics panel) ---- #}
+            {% if athleteData.analyticsVerdicts is defined and athleteData.analyticsVerdicts is not empty %}
+                {% set moduleShortNames = {
+                    'recovery_index':    'Recuperación',
+                    'sleep_scoring':     'Sueño',
+                    'fatigue_detection': 'Carga / Fatiga',
+                    'body_measurement':  'Mediciones',
+                    'training_volume':   'Volumen'
+                } %}
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 mt-2">Mi Estado</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+                    {% for module, verdict in athleteData.analyticsVerdicts %}
+                        {% if verdict.verdict in ['STABLE', 'GOOD'] %}
+                            {% set cardBg    = 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' %}
+                            {% set badgeBg   = 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' %}
+                        {% elseif verdict.verdict == 'CAUTION' %}
+                            {% set cardBg    = 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' %}
+                            {% set badgeBg   = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' %}
+                        {% elseif verdict.verdict in ['ALERT', 'POOR'] %}
+                            {% set cardBg    = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' %}
+                            {% set badgeBg   = 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' %}
+                        {% elseif verdict.verdict == 'INSUFFICIENT_DATA' %}
+                            {% set cardBg    = 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' %}
+                            {% set badgeBg   = 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' %}
+                        {% else %}
+                            {% set cardBg    = 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' %}
+                            {% set badgeBg   = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' %}
+                        {% endif %}
+                        <div class="rounded-lg border {{ cardBg }} px-4 py-3 shadow-sm">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">
+                                {{ moduleShortNames[module] ?? module|replace({'_': ' '})|title }}
+                            </p>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ badgeBg }}">
+                                {{ verdict.verdict|replace({'_': ' '}) }}
+                            </span>
+                            {% if verdict.score >= 0 %}
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ verdict.score|number_format(1) }} pts</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
         {% endif %}
 
         {# ================================================================ #}
@@ -148,6 +191,36 @@
                                     </span>
                                 </div>
 
+                                {# Analytics verdict badges (cached, no recompute) #}
+                                {% if summary.verdicts is not empty %}
+                                    <div class="flex flex-wrap gap-1 mt-3">
+                                        {% set moduleShortNames = {
+                                            'recovery_index':    'Recup.',
+                                            'sleep_scoring':     'Sueño',
+                                            'fatigue_detection': 'Fatiga',
+                                            'body_measurement':  'Medic.',
+                                            'training_volume':   'Vol.'
+                                        } %}
+                                        {% for moduleName, verdict in summary.verdicts %}
+                                            {% if verdict.verdict in ['STABLE', 'GOOD'] %}
+                                                {% set badgeColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' %}
+                                            {% elseif verdict.verdict == 'CAUTION' %}
+                                                {% set badgeColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' %}
+                                            {% elseif verdict.verdict in ['ALERT', 'POOR'] %}
+                                                {% set badgeColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' %}
+                                            {% elseif verdict.verdict == 'INSUFFICIENT_DATA' %}
+                                                {% set badgeColor = 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' %}
+                                            {% else %}
+                                                {% set badgeColor = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' %}
+                                            {% endif %}
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ badgeColor }}"
+                                                  title="{{ verdict.insights|first ?? verdict.verdict }}">
+                                                {{ moduleShortNames[moduleName] ?? moduleName }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+
                                 <div class="space-y-2 text-sm">
                                     <div class="flex items-center justify-between">
                                         <span class="text-gray-500 dark:text-gray-400">Mesociclo activo</span>
@@ -193,6 +266,10 @@
                                 <a href="{{ path('coach_athlete_steps', {athleteId: summary.athlete.id}) }}"
                                    class="flex-1 text-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                                     Pasos
+                                </a>
+                                <a href="{{ path('coach_athlete_analytics', {athleteId: summary.athlete.id}) }}"
+                                   class="flex-1 text-center rounded-md border border-purple-300 dark:border-purple-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-semibold text-purple-600 dark:text-purple-400 shadow-sm hover:bg-purple-50 dark:hover:bg-gray-700 transition">
+                                    Analytics
                                 </a>
                             </div>
                         </div>
