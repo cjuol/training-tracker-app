@@ -47,7 +47,7 @@
                 </div>
                 {% if fitbitToken and fitbitToken.isValid %}
                 <div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                    Fitbit · última sync {{ fitbitToken.lastSyncedAt is not null ? fitbitToken.lastSyncedAt|date('d/m H:i') : 'nunca' }}
+                    Fitbit · conectado {{ fitbitToken.connectedAt|date('d/m/Y') }}
                 </div>
                 {% endif %}
             </div>
