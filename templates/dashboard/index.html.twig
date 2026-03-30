@@ -69,8 +69,9 @@
                                                 {% endif %}
                                             </div>
                                             <div>
-                                                {% if athleteData.sessionInProgress[session.id] is not null %}
-                                                    <a href="{{ path('workout_show', {workoutLogId: athleteData.sessionInProgress[session.id]}) }}"
+                                                {% set _wlId = athleteData.sessionInProgress[session.id] ?? null %}
+                                                {% if _wlId is not null %}
+                                                    <a href="{{ path('workout_show', {workoutLogId: _wlId}) }}"
                                                        class="inline-flex items-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 active:bg-yellow-600">
                                                         Continuar
                                                     </a>
