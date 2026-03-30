@@ -160,11 +160,12 @@ class SetLogRepository extends ServiceEntityRepository
      */
     public function findExercisesLoggedByUser(User $user): array
     {
-        $rows = $this->createQueryBuilder('sl')
+        $rows = $this->getEntityManager()->createQueryBuilder()
             ->select('e AS exercise, COUNT(DISTINCT wl.id) AS sessionCount')
-            ->join('sl.workoutLog', 'wl')
-            ->join('sl.sessionExercise', 'se')
-            ->join('se.exercise', 'e')
+            ->from(Exercise::class, 'e')
+            ->join(SessionExercise::class, 'se', 'WITH', 'se.exercise = e')
+            ->join(SetLog::class, 'sl', 'WITH', 'sl.sessionExercise = se')
+            ->join(WorkoutLog::class, 'wl', 'WITH', 'sl.workoutLog = wl')
             ->andWhere('wl.athlete = :user')
             ->andWhere('sl.weight IS NOT NULL')
             ->andWhere('sl.reps IS NOT NULL')

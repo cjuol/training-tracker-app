@@ -69,7 +69,7 @@
                                                 {% endif %}
                                             </div>
                                             <div>
-                                                {% if athleteData.sessionInProgress[session.id] is defined %}
+                                                {% if athleteData.sessionInProgress[session.id] is not null %}
                                                     <a href="{{ path('workout_show', {workoutLogId: athleteData.sessionInProgress[session.id]}) }}"
                                                        class="inline-flex items-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 active:bg-yellow-600">
                                                         Continuar
@@ -93,7 +93,7 @@
                 </div>
             {% endif %}
             {# ---- Mi análisis (compact analytics panel) ---- #}
-            {% if athleteData.analyticsVerdicts is defined and athleteData.analyticsVerdicts is not empty %}
+            {% if athleteData.analyticsVerdicts is not null and athleteData.analyticsVerdicts is not empty %}
                 {% set moduleShortNames = {
                     'recovery_index':    'Recuperación',
                     'sleep_scoring':     'Sueño',
