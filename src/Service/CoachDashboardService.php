@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\AssignedMesocycleRepository;
 use App\Repository\CoachAthleteRepository;
 use App\Repository\WorkoutLogRepository;
+use App\Service\Analytics\AnalyticsSnapshotService;
 
 /**
  * Aggregates per-athlete summary data for the coach dashboard.
@@ -22,6 +23,7 @@ class CoachDashboardService
         private readonly CoachAthleteRepository $coachAthleteRepository,
         private readonly AssignedMesocycleRepository $assignedMesocycleRepository,
         private readonly WorkoutLogRepository $workoutLogRepository,
+        private readonly AnalyticsSnapshotService $analyticsSnapshotService,
     ) {
     }
 
@@ -34,13 +36,15 @@ class CoachDashboardService
      *   'activeMesocycle'                => string|null,   // title or null
      *   'lastWorkoutDate'                => \DateTimeImmutable|null,
      *   'completedSessionsThisMesocycle' => int,
+     *   'verdicts'                       => array<string, AnalyticsVerdict>,  // cached only, may be empty
      * ]
      *
      * @return array<int, array{
      *     athlete: User,
      *     activeMesocycle: string|null,
      *     lastWorkoutDate: \DateTimeImmutable|null,
-     *     completedSessionsThisMesocycle: int
+     *     completedSessionsThisMesocycle: int,
+     *     verdicts: array
      * }>
      */
     public function getAthleteSummaries(User $coach): array
@@ -55,6 +59,9 @@ class CoachDashboardService
         // Batch queries — one per data type for all athletes instead of N×3
         $currentAssignmentsMap = $this->assignedMesocycleRepository->findActiveByAthletesGrouped($athletes);
         $lastDateMap = $this->workoutLogRepository->findLastPerAthletes($athletes);
+
+        // Batch-load cached analytics verdicts (read-only, no recompute)
+        $verdictsMap = $this->analyticsSnapshotService->getCachedForUsers($athletes);
 
         foreach ($athletes as $athlete) {
             $athleteId = $athlete->getId();
@@ -86,6 +93,7 @@ class CoachDashboardService
                 'activeMesocycle' => $activeMesocycleTitle,
                 'lastWorkoutDate' => $lastWorkoutDate,
                 'completedSessionsThisMesocycle' => $completedCount,
+                'verdicts' => $verdictsMap[$athleteId] ?? [],
             ];
         }
 

@@ -1,0 +1,146 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analytics — {{ athlete.fullName }} — Training Tracker{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {# Breadcrumb #}
+        <nav class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            <a href="{{ path('app_dashboard') }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Panel</a>
+            <span class="mx-1">/</span>
+            <a href="{{ path('coach_athlete_history', {athleteId: athlete.id}) }}"
+               class="hover:text-indigo-600 dark:hover:text-indigo-400">Atleta: {{ athlete.fullName }}</a>
+            <span class="mx-1">/</span>
+            <span class="text-gray-700 dark:text-gray-300">Analytics</span>
+        </nav>
+
+        {# Page header #}
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Análisis de {{ athlete.fullName }}
+            </h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ athlete.email }}</p>
+        </div>
+
+        {# Module name map (Spanish) #}
+        {% set moduleNames = {
+            'recovery_index':    'Recuperación',
+            'sleep_scoring':     'Sueño',
+            'fatigue_detection': 'Carga / Fatiga',
+            'body_measurement':  'Mediciones',
+            'training_volume':   'Volumen'
+        } %}
+
+        {# Analytics cards #}
+        {% if verdicts is empty %}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-12 text-center shadow-sm">
+                <p class="text-sm text-gray-500 dark:text-gray-400">No hay datos de análisis disponibles para este atleta.</p>
+            </div>
+        {% else %}
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {% for module, verdict in verdicts %}
+                    {# Determine badge colours #}
+                    {% if verdict.verdict in ['STABLE', 'GOOD'] %}
+                        {% set badgeBg   = 'bg-green-100 dark:bg-green-900/30' %}
+                        {% set badgeText = 'text-green-800 dark:text-green-300' %}
+                        {% set cardBorder = 'border-green-200 dark:border-green-800' %}
+                    {% elseif verdict.verdict == 'CAUTION' %}
+                        {% set badgeBg   = 'bg-yellow-100 dark:bg-yellow-900/30' %}
+                        {% set badgeText = 'text-yellow-800 dark:text-yellow-300' %}
+                        {% set cardBorder = 'border-yellow-200 dark:border-yellow-800' %}
+                    {% elseif verdict.verdict == 'ALERT' or verdict.verdict == 'POOR' %}
+                        {% set badgeBg   = 'bg-red-100 dark:bg-red-900/30' %}
+                        {% set badgeText = 'text-red-800 dark:text-red-300' %}
+                        {% set cardBorder = 'border-red-200 dark:border-red-800' %}
+                    {% elseif verdict.verdict == 'INSUFFICIENT_DATA' %}
+                        {% set badgeBg   = 'bg-gray-100 dark:bg-gray-700' %}
+                        {% set badgeText = 'text-gray-500 dark:text-gray-400' %}
+                        {% set cardBorder = 'border-gray-200 dark:border-gray-700' %}
+                    {% else %}
+                        {% set badgeBg   = 'bg-indigo-100 dark:bg-indigo-900/30' %}
+                        {% set badgeText = 'text-indigo-800 dark:text-indigo-300' %}
+                        {% set cardBorder = 'border-indigo-200 dark:border-indigo-800' %}
+                    {% endif %}
+
+                    <div class="flex flex-col rounded-lg border {{ cardBorder }} bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                        {# Card header #}
+                        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                {{ moduleNames[module] ?? module|replace({'_': ' '})|title }}
+                            </h2>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {{ badgeBg }} {{ badgeText }}">
+                                {{ verdict.verdict|replace({'_': ' '}) }}
+                            </span>
+                        </div>
+
+                        <div class="flex-1 px-6 py-4 space-y-4">
+                            {% if verdict.verdict == 'INSUFFICIENT_DATA' %}
+                                <p class="text-sm text-gray-400 dark:text-gray-500 italic">
+                                    No hay suficientes datos para calcular este módulo.
+                                </p>
+                            {% else %}
+                                {# Score bar #}
+                                {% if verdict.score >= 0 %}
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Puntuación</span>
+                                            <span class="text-xs font-bold {{ verdict.score >= 75 ? 'text-green-700 dark:text-green-400' : (verdict.score >= 50 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-700 dark:text-red-400') }}">
+                                                {{ verdict.score|number_format(1) }}
+                                            </span>
+                                        </div>
+                                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                                            <div class="h-2 rounded-full {{ verdict.score >= 75 ? 'bg-green-500' : (verdict.score >= 50 ? 'bg-yellow-400' : 'bg-red-500') }}"
+                                                 style="width: {{ [verdict.score, 100]|min }}%"></div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {# Insights #}
+                                {% if verdict.insights is not empty %}
+                                    <div>
+                                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Observaciones</p>
+                                        <ul class="space-y-1">
+                                            {% for insight in verdict.insights %}
+                                                <li class="text-sm text-gray-700 dark:text-gray-300 flex gap-2">
+                                                    <span class="text-gray-400 dark:text-gray-500 shrink-0">&bull;</span>
+                                                    <span>{{ insight }}</span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+
+                                {# Outliers #}
+                                {% if verdict.outliers is not empty %}
+                                    <div>
+                                        <p class="text-xs font-medium text-red-500 dark:text-red-400 mb-1">
+                                            Valores atípicos ({{ verdict.outliers|length }})
+                                        </p>
+                                        <div class="flex flex-wrap gap-1">
+                                            {% for outlier in verdict.outliers %}
+                                                <span class="inline-flex items-center rounded bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
+                                                    {{ outlier }}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        {# Card footer — computed time #}
+                        <div class="px-6 py-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700">
+                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                Calculado: {{ verdict.computedAt|date('d/m/Y H:i') }}
+                            </p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+    </main>
+</div>
+{% endblock %}

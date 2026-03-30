@@ -11,6 +11,7 @@ use App\Repository\BodyMeasurementRepository;
 use App\Repository\CoachAthleteRepository;
 use App\Repository\DailyStepsRepository;
 use App\Repository\UserRepository;
+use App\Service\Analytics\AnalyticsSnapshotService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +30,35 @@ class CoachDashboardController extends AbstractController
     public function index(): Response
     {
         return $this->redirectToRoute('app_dashboard');
+    }
+
+    #[Route('/coach/athletes/{athleteId}/analytics', name: 'coach_athlete_analytics', methods: ['GET'])]
+    #[IsGranted('ROLE_ENTRENADOR')]
+    public function athleteAnalytics(
+        int $athleteId,
+        UserRepository $userRepo,
+        CoachAthleteRepository $coachAthleteRepo,
+        AnalyticsSnapshotService $analyticsService,
+    ): Response {
+        /** @var User $coach */
+        $coach = $this->getUser();
+        $athlete = $userRepo->find($athleteId);
+
+        if (!$athlete instanceof User) {
+            throw $this->createNotFoundException('Atleta no encontrado.');
+        }
+
+        if (!$coachAthleteRepo->isAthleteOfCoach($coach, $athlete)) {
+            throw $this->createAccessDeniedException('No tienes acceso a los datos de este atleta.');
+        }
+
+        // Triggers recompute for stale/missing modules
+        $verdicts = $analyticsService->getAll($athlete);
+
+        return $this->render('coach/athlete_analytics.html.twig', [
+            'athlete'  => $athlete,
+            'verdicts' => $verdicts,
+        ]);
     }
 
     #[Route('/coach/athletes/{athleteId}/measurements', name: 'coach_athlete_measurements', methods: ['GET'])]
