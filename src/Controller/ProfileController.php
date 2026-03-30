@@ -13,9 +13,13 @@ use App\Repository\AssignedMesocycleRepository;
 use App\Repository\BodyMeasurementRepository;
 use App\Repository\DailyHeartRateRepository;
 use App\Repository\DailyStepsRepository;
+use App\Repository\DailyWellnessMetricsRepository;
+use App\Repository\SetLogRepository;
 use App\Repository\SleepLogRepository;
 use App\Repository\WorkoutLogRepository;
 use App\Security\Voter\BodyMeasurementVoter;
+use App\Service\Analytics\AnalyticsSnapshotService;
+use Cjuol\StatGuard\RobustStats;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -54,30 +58,38 @@ class ProfileController extends AbstractController
         WorkoutLogRepository $workoutLogRepo,
         SleepLogRepository $sleepLogRepo,
         DailyHeartRateRepository $heartRateRepo,
+        AnalyticsSnapshotService $analyticsService,
+        DailyWellnessMetricsRepository $wellnessRepo,
+        SetLogRepository $setLogRepo,
     ): Response {
         /** @var User $athlete */
         $athlete = $this->getUser();
+        $today = new \DateTimeImmutable('today');
+        $monday = new \DateTimeImmutable('monday this week midnight');
+
         $latestMeasurement = $repo->findLatestByAthlete($athlete);
+        $bodyMeasurements = $repo->findByAthleteAndDateRange($athlete, $today->modify('-4 weeks'), $today);
 
         $activeAssignments = $assignedRepo->findActiveByAthlete($athlete);
         $activeMesocycle = $activeAssignments[0] ?? null;
 
-        $todayEntry = $dailyStepsRepo->findByUserAndDate($athlete, new \DateTimeImmutable('today'));
+        $todayEntry = $dailyStepsRepo->findByUserAndDate($athlete, $today);
         $todaySteps = $todayEntry?->getSteps() ?? 0;
         $stepsTarget = $activeMesocycle?->getMesocycle()->getDailyStepsTarget();
 
         $recentHistory = $workoutLogRepo->findRecentByUser($athlete, 10);
 
         $fitbitToken = $athlete->getFitbitToken();
+        $fitbitConnected = $fitbitToken !== null && $fitbitToken->isValid();
         $sleepMinutes = 0;
         $cardioMinutes = 0;
         $restingHR = null;
 
-        if ($fitbitToken && $fitbitToken->isValid()) {
+        if ($fitbitConnected) {
             $lastNightSleep = $sleepLogRepo->findByUserAndDate($athlete, new \DateTimeImmutable('yesterday'));
             $sleepMinutes = $lastNightSleep?->getDurationMinutes() ?? 0;
 
-            $todayHR = $heartRateRepo->findByUserAndDate($athlete, new \DateTimeImmutable('today'));
+            $todayHR = $heartRateRepo->findByUserAndDate($athlete, $today);
             $restingHR = $todayHR?->getRestingHeartRate();
             if ($todayHR) {
                 foreach ($todayHR->getZones() as $zone) {
@@ -88,19 +100,192 @@ class ProfileController extends AbstractController
             }
         }
 
+        // Analytics snapshot (TTL-cached, 6h)
+        $scores = $analyticsService->getAll($athlete);
+
+        // Latest wellness metrics
+        $wellness = $wellnessRepo->findLatestByUser($athlete);
+
+        // Weekly tonnage & workout count
+        $weeklyTonnage = $setLogRepo->findTonnageForPeriod($athlete, $monday, $today);
+        $weekWorkouts = count($workoutLogRepo->findCompletedByAthleteInDateRange($athlete, $monday, $today));
+
+        // RHR sparkline with server-side Huber mean + MAD color computation
+        $rhrRecords = $heartRateRepo->findRecentByUser($athlete, 14);
+        $rhrValues = [];
+        foreach ($rhrRecords as $record) {
+            $rhr = $record->getRestingHeartRate();
+            if ($rhr !== null) {
+                $rhrValues[] = (float) $rhr;
+            }
+        }
+
+        $sparklineData = [];
+        if (count($rhrValues) >= 2) {
+            $rs = new RobustStats();
+            $mean = $rs->getHuberMean($rhrValues);
+            $mad = $rs->getMad($rhrValues);
+            foreach ($rhrRecords as $record) {
+                $rhr = $record->getRestingHeartRate();
+                if ($rhr === null) {
+                    continue;
+                }
+                $deviation = abs((float) $rhr - $mean);
+                if ($deviation <= $mad) {
+                    $color = 'green';
+                } elseif ($deviation <= 2 * $mad) {
+                    $color = 'amber';
+                } else {
+                    $color = 'red';
+                }
+                $sparklineData[] = [
+                    'date'      => $record->getDate()->format('Y-m-d'),
+                    'value'     => (float) $rhr,
+                    'color'     => $color,
+                    'huberMean' => $mean,
+                    'mad'       => $mad,
+                ];
+            }
+        } else {
+            foreach ($rhrRecords as $record) {
+                $rhr = $record->getRestingHeartRate();
+                if ($rhr === null) {
+                    continue;
+                }
+                $sparklineData[] = [
+                    'date'      => $record->getDate()->format('Y-m-d'),
+                    'value'     => (float) $rhr,
+                    'color'     => 'gray',
+                    'huberMean' => null,
+                    'mad'       => null,
+                ];
+            }
+        }
+        $sparklineJson = json_encode($sparklineData, \JSON_THROW_ON_ERROR);
+
         return $this->render('profile/index.html.twig', [
-            'activeMesocycle' => $activeMesocycle,
+            'activeMesocycle'  => $activeMesocycle,
             'latestMeasurement' => $latestMeasurement,
-            'todaySteps' => $todaySteps,
-            'stepsTarget' => $stepsTarget,
-            'recentHistory' => $recentHistory,
-            'fitbitToken' => $fitbitToken,
-            'sleepMinutes' => $sleepMinutes,
-            'sleepTarget' => 480,
-            'cardioMinutes' => $cardioMinutes,
-            'cardioTarget' => 22,
-            'restingHR' => $restingHR,
+            'bodyMeasurements' => $bodyMeasurements,
+            'todaySteps'       => $todaySteps,
+            'stepsTarget'      => $stepsTarget,
+            'stepsGoal'        => 10000,
+            'sleepGoal'        => 480,
+            'recentHistory'    => $recentHistory,
+            'fitbitToken'      => $fitbitToken,
+            'fitbitConnected'  => $fitbitConnected,
+            'sleepMinutes'     => $sleepMinutes,
+            'sleepTarget'      => 480,
+            'cardioMinutes'    => $cardioMinutes,
+            'cardioTarget'     => 22,
+            'restingHR'        => $restingHR,
+            'scores'           => $scores,
+            'wellness'         => $wellness,
+            'weeklyTonnage'    => $weeklyTonnage,
+            'weekWorkouts'     => $weekWorkouts,
+            'sparklineJson'    => $sparklineJson,
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Wellness data JSON endpoint
+    // -------------------------------------------------------------------------
+
+    #[Route('/wellness-data', name: 'profile_wellness_data', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function wellnessData(DailyWellnessMetricsRepository $wellnessRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $records = $wellnessRepo->findLast14ByUser($user);
+
+        $data = array_map(static function (\App\Entity\DailyWellnessMetrics $w): array {
+            return [
+                'date'                     => $w->getDate()->format('Y-m-d'),
+                'rmssd'                    => $w->getRmssd(),
+                'deepRmssd'                => $w->getDeepRmssd(),
+                'spo2Avg'                  => $w->getSpo2Avg(),
+                'spo2Min'                  => $w->getSpo2Min(),
+                'spo2Max'                  => $w->getSpo2Max(),
+                'breathingRate'            => $w->getBreathingRate(),
+                'skinTemperatureRelative'  => $w->getSkinTemperatureRelative(),
+            ];
+        }, $records);
+
+        return new JsonResponse($data);
+    }
+
+    // -------------------------------------------------------------------------
+    // Activity calendar JSON endpoint
+    // -------------------------------------------------------------------------
+
+    #[Route('/activity-calendar', name: 'profile_activity_calendar', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function activityCalendar(WorkoutLogRepository $workoutLogRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $from = new \DateTimeImmutable('-90 days');
+        $to = new \DateTimeImmutable('today');
+
+        $logs = $workoutLogRepo->findCompletedByAthleteInDateRange($user, $from, $to);
+
+        $dateCountMap = [];
+        foreach ($logs as $log) {
+            $dateStr = $log->getStartTime()->format('Y-m-d');
+            if (!isset($dateCountMap[$dateStr])) {
+                $dateCountMap[$dateStr] = 0;
+            }
+            ++$dateCountMap[$dateStr];
+        }
+
+        $result = [];
+        foreach ($dateCountMap as $date => $count) {
+            $result[] = ['date' => $date, 'count' => $count];
+        }
+
+        return new JsonResponse($result);
+    }
+
+    // -------------------------------------------------------------------------
+    // Personal records JSON endpoint
+    // -------------------------------------------------------------------------
+
+    #[Route('/personal-records', name: 'profile_personal_records', methods: ['GET'])]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function personalRecords(SetLogRepository $setLogRepo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $rows = $setLogRepo->findPersonalRecordsByUser($user);
+
+        // Reduce to all-time max per exercise (one row per exercise name)
+        $best = [];
+        foreach ($rows as $row) {
+            $name = $row['exercise_name'];
+            if (!isset($best[$name]) || $row['max_weight'] > $best[$name]['max_weight']) {
+                $best[$name] = $row;
+            }
+        }
+
+        // Sort alphabetically and take first 20
+        ksort($best);
+        $best = array_slice(array_values($best), 0, 20);
+
+        $data = array_map(static function (array $r): array {
+            $date = $r['date'];
+            if ($date instanceof \DateTimeInterface) {
+                $date = $date->format('Y-m-d');
+            }
+
+            return [
+                'exercise'  => $r['exercise_name'],
+                'maxWeight' => $r['max_weight'],
+                'date'      => $date,
+            ];
+        }, $best);
+
+        return new JsonResponse($data);
     }
 
     // -------------------------------------------------------------------------

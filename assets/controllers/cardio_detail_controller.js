@@ -39,15 +39,15 @@ export default class extends Controller {
 
   _render(data) {
     const ZONE_COLORS = {
-      'Out of Range': '#e5e7eb',
-      'Fat Burn':     '#fbbf24',
-      'Cardio':       '#f97316',
-      'Peak':         '#ef4444',
+      'Fat Burn': '#fbbf24',
+      'Cardio':   '#f97316',
+      'Peak':     '#ef4444',
     }
-    const zoneNames = ['Out of Range', 'Fat Burn', 'Cardio', 'Peak']
+    const EXCLUDED_ZONES = ['Out of Range']
+    const zoneNames = ['Fat Burn', 'Cardio', 'Peak']
     const labels    = data.map(d => d.date)
 
-    const datasets = zoneNames.map(name => ({
+    const datasets = zoneNames.filter(name => !EXCLUDED_ZONES.includes(name)).map(name => ({
       label:           name,
       data:            data.map(d => {
         const z = (d.zones ?? []).find(z => z.name === name)

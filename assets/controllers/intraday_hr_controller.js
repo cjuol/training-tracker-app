@@ -34,13 +34,15 @@ export default class extends Controller {
   }
 
   _render(data) {
-    if (!data.length) {
+    const filtered = data.filter(d => d.avgBpm !== null)
+
+    if (!filtered.length) {
       this.emptyTarget.classList.remove("hidden")
       return
     }
 
-    const labels  = data.map(d => d.hour)
-    const values  = data.map(d => d.avgBpm)
+    const labels  = filtered.map(d => d.hour)
+    const values  = filtered.map(d => d.avgBpm)
 
     if (this._chart) this._chart.destroy()
     this._chart = new Chart(this.canvasTarget, {
