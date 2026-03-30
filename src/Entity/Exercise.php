@@ -30,6 +30,12 @@ class Exercise
     #[ORM\JoinColumn(nullable: false)]
     private User $createdBy;
 
+    /**
+     * Soft enum — valid values: chest, back, legs, shoulders, arms, core, cardio, full_body
+     */
+    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    private ?string $muscleGroup = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -95,5 +101,17 @@ class Exercise
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getMuscleGroup(): ?string
+    {
+        return $this->muscleGroup;
+    }
+
+    public function setMuscleGroup(?string $muscleGroup): static
+    {
+        $this->muscleGroup = $muscleGroup;
+
+        return $this;
     }
 }

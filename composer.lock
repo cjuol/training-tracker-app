@@ -4,8 +4,63 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1fb84479fbae0f90060ccdebc3f6bf2c",
+    "content-hash": "5efc768fb2563ded5347d89ed88556e1",
     "packages": [
+        {
+            "name": "cjuol/statguard",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/cjuol/StatGuard.git",
+                "reference": "43b5d6eed6d2febc3bad94b207710affa5b4617a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/cjuol/StatGuard/zipball/43b5d6eed6d2febc3bad94b207710affa5b4617a",
+                "reference": "43b5d6eed6d2febc3bad94b207710affa5b4617a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "markrogoyski/math-php": "^2.0",
+                "phpunit/phpunit": "^10.5 || ^11.0 || ^12.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Cjuol\\StatGuard\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Cristóbal Jurado Oller",
+                    "email": "c.jurado.oller@gmail.com"
+                }
+            ],
+            "description": "Suite de estadística avanzada para PHP: cálculos robustos (IQR, S*, MAD) vs clásicos, detección de sesgos y exportación CSV/JSON.",
+            "keywords": [
+                "comparative-stats",
+                "csv-export",
+                "data-analysis",
+                "data-integrity",
+                "outliers",
+                "php",
+                "robust-statistics",
+                "statguard",
+                "statistics"
+            ],
+            "support": {
+                "issues": "https://github.com/cjuol/StatGuard/issues",
+                "source": "https://github.com/cjuol/StatGuard/tree/v1.1.0"
+            },
+            "time": "2026-02-12T11:24:51+00:00"
+        },
         {
             "name": "composer/semver",
             "version": "3.4.4",

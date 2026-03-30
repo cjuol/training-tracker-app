@@ -250,4 +250,29 @@ class WorkoutLogRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Returns completed WorkoutLogs for an athlete with startTime in the given date range.
+     * Ordered by startTime ascending.
+     *
+     * @return WorkoutLog[]
+     */
+    public function findCompletedByAthleteInDateRange(
+        User $athlete,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array {
+        return $this->createQueryBuilder('wl')
+            ->andWhere('wl.athlete = :athlete')
+            ->andWhere('wl.startTime >= :from')
+            ->andWhere('wl.startTime <= :to')
+            ->andWhere('wl.status = :status')
+            ->setParameter('athlete', $athlete)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('status', WorkoutStatus::Completed)
+            ->orderBy('wl.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

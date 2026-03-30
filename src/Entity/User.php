@@ -8,6 +8,7 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -53,6 +54,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?FitbitToken $fitbitToken = null;
+
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $birthDate = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $heightCm = null;
 
     public function __construct()
     {
@@ -221,6 +228,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->fitbitToken = $fitbitToken;
+
+        return $this;
+    }
+
+    public function getBirthDate(): ?\DateTimeImmutable
+    {
+        return $this->birthDate;
+    }
+
+    public function setBirthDate(?\DateTimeImmutable $birthDate): static
+    {
+        $this->birthDate = $birthDate;
+
+        return $this;
+    }
+
+    public function getAge(): ?int
+    {
+        if ($this->birthDate === null) {
+            return null;
+        }
+
+        return (int) $this->birthDate->diff(new \DateTimeImmutable('today'))->y;
+    }
+
+    public function getHeightCm(): ?float
+    {
+        return $this->heightCm;
+    }
+
+    public function setHeightCm(?float $heightCm): static
+    {
+        $this->heightCm = $heightCm;
 
         return $this;
     }

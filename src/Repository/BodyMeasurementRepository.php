@@ -80,4 +80,26 @@ class BodyMeasurementRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Returns measurements for an athlete within a date range, ordered ascending by date.
+     *
+     * @return BodyMeasurement[]
+     */
+    public function findByAthleteAndDateRange(
+        User $athlete,
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+    ): array {
+        return $this->createQueryBuilder('bm')
+            ->andWhere('bm.athlete = :athlete')
+            ->andWhere('bm.measurementDate >= :from')
+            ->andWhere('bm.measurementDate <= :to')
+            ->setParameter('athlete', $athlete)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('bm.measurementDate', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
