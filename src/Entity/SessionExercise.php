@@ -33,6 +33,9 @@ class SessionExercise
     #[ORM\Column(type: 'float', nullable: true)]
     private ?float $targetWeight = null;
 
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $restSeconds = null;
+
     /**
      * Groups exercises that together form a superseries or triset.
      * Nullable int — exercises sharing the same non-null value belong to the same group.
@@ -111,6 +114,18 @@ class SessionExercise
     public function setTargetWeight(?float $targetWeight): static
     {
         $this->targetWeight = $targetWeight;
+
+        return $this;
+    }
+
+    public function getRestSeconds(): ?int
+    {
+        return $this->restSeconds;
+    }
+
+    public function setRestSeconds(?int $restSeconds): static
+    {
+        $this->restSeconds = $restSeconds;
 
         return $this;
     }

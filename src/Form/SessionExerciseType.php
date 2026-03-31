@@ -73,6 +73,15 @@ class SessionExerciseType extends AbstractType
                     'placeholder' => 'Ej. 1 (para agrupar ejercicios)',
                     'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
                 ],
+            ])
+            ->add('restSeconds', IntegerType::class, [
+                'label' => 'Descanso entre series (s)',
+                'required' => false,
+                'attr' => [
+                    'min' => 0,
+                    'placeholder' => 'Ej. 90',
+                    'class' => 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
+                ],
             ]);
     }
 

@@ -188,6 +188,7 @@ class WorkoutExecutionController extends AbstractController
                 'kcal' => $setLog->getKcal(),
                 'observacion' => $setLog->getObservacion(),
             ],
+            'restSuggested' => $sessionExercise->getRestSeconds() ?? 90,
             'newCurrentExerciseId' => $workoutLog->getCurrentExerciseId(),
             'workoutComplete' => $allDone,
         ]);

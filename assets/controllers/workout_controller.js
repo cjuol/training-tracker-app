@@ -98,7 +98,7 @@ export default class extends Controller {
 
             // Dispatch rest timer event
             window.dispatchEvent(new CustomEvent('workout:setLogged', {
-                detail: { restSuggested: 90, setLogId: json.setLog.id },
+                detail: { restSuggested: json.restSuggested ?? 90, setLogId: json.setLog.id },
             }));
 
             // Show completion modal if all sets done
