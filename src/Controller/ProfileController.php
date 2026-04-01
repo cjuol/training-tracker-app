@@ -9,6 +9,7 @@ use App\Entity\DailyHeartRate;
 use App\Entity\SleepLog;
 use App\Entity\User;
 use App\Form\BodyMeasurementType;
+use App\Form\ProfileSettingsType;
 use App\Repository\AssignedMesocycleRepository;
 use App\Repository\BodyMeasurementRepository;
 use App\Repository\DailyHeartRateRepository;
@@ -49,9 +50,10 @@ class ProfileController extends AbstractController
     // Athlete profile index
     // -------------------------------------------------------------------------
 
-    #[Route('', name: 'profile_index', methods: ['GET'])]
+    #[Route('', name: 'profile_index', methods: ['GET', 'POST'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function index(
+        Request $request,
         BodyMeasurementRepository $repo,
         AssignedMesocycleRepository $assignedRepo,
         DailyStepsRepository $dailyStepsRepo,
@@ -61,9 +63,23 @@ class ProfileController extends AbstractController
         AnalyticsSnapshotService $analyticsService,
         DailyWellnessMetricsRepository $wellnessRepo,
         SetLogRepository $setLogRepo,
+        EntityManagerInterface $em,
     ): Response {
         /** @var User $athlete */
         $athlete = $this->getUser();
+
+        // Settings form (demographics: birthDate + heightCm)
+        $settingsForm = $this->createForm(ProfileSettingsType::class, $athlete, [
+            'action' => $this->generateUrl('profile_index') . '#ajustes',
+        ]);
+        $settingsForm->handleRequest($request);
+        if ($settingsForm->isSubmitted() && $settingsForm->isValid()) {
+            $em->flush();
+            $this->addFlash('success', 'Datos personales actualizados correctamente.');
+
+            return $this->redirectToRoute('profile_index', ['_fragment' => 'ajustes']);
+        }
+
         $today = new \DateTimeImmutable('today');
         $monday = new \DateTimeImmutable('monday this week midnight');
 
@@ -184,6 +200,7 @@ class ProfileController extends AbstractController
             'weeklyTonnage'    => $weeklyTonnage,
             'weekWorkouts'     => $weekWorkouts,
             'sparklineJson'    => $sparklineJson,
+            'settingsForm'     => $settingsForm,
         ]);
     }
 
@@ -230,21 +247,14 @@ class ProfileController extends AbstractController
 
         $logs = $workoutLogRepo->findCompletedByAthleteInDateRange($user, $from, $to);
 
-        $dateCountMap = [];
+        // Return flat array of date strings (one entry per session, duplicates allowed).
+        // The JS controller counts occurrences per date client-side.
+        $dates = [];
         foreach ($logs as $log) {
-            $dateStr = $log->getStartTime()->format('Y-m-d');
-            if (!isset($dateCountMap[$dateStr])) {
-                $dateCountMap[$dateStr] = 0;
-            }
-            ++$dateCountMap[$dateStr];
+            $dates[] = $log->getStartTime()->format('Y-m-d');
         }
 
-        $result = [];
-        foreach ($dateCountMap as $date => $count) {
-            $result[] = ['date' => $date, 'count' => $count];
-        }
-
-        return new JsonResponse($result);
+        return new JsonResponse(['dates' => $dates]);
     }
 
     // -------------------------------------------------------------------------

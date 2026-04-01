@@ -215,37 +215,64 @@
                 </div>
                 {% endif %}
 
-                {# Row 4 — Body composition mini-cards #}
+                {# Row 4 — Body composition mini-cards (weight, waist, 4-week trends) #}
                 {% if latestMeasurement is not null %}
+                {# Compute 4-week body composition trend from bodyMeasurements (oldest first, newest last) #}
+                {% set firstMeasurement = bodyMeasurements|last %}
+                {% set lastMeasurement  = bodyMeasurements|first %}
+                {# Weight trend #}
+                {% set weightTrendArrow = '→' %}
+                {% set weightTrendClass = 'text-gray-500 dark:text-gray-400' %}
+                {% if firstMeasurement is not null and lastMeasurement is not null and firstMeasurement != lastMeasurement
+                     and firstMeasurement.weightKg is not null and lastMeasurement.weightKg is not null %}
+                    {% set weightDelta = lastMeasurement.weightKg - firstMeasurement.weightKg %}
+                    {% if weightDelta > 0.5 %}
+                        {% set weightTrendArrow = '↑' %}
+                        {% set weightTrendClass = 'text-red-500 dark:text-red-400' %}
+                    {% elseif weightDelta < -0.5 %}
+                        {% set weightTrendArrow = '↓' %}
+                        {% set weightTrendClass = 'text-green-500 dark:text-green-400' %}
+                    {% endif %}
+                {% endif %}
+                {# Waist trend #}
+                {% set waistTrendArrow = '→' %}
+                {% set waistTrendClass = 'text-gray-500 dark:text-gray-400' %}
+                {% if firstMeasurement is not null and lastMeasurement is not null and firstMeasurement != lastMeasurement
+                     and firstMeasurement.waistCm is not null and lastMeasurement.waistCm is not null %}
+                    {% set waistDelta = lastMeasurement.waistCm - firstMeasurement.waistCm %}
+                    {% if waistDelta > 0.5 %}
+                        {% set waistTrendArrow = '↑' %}
+                        {% set waistTrendClass = 'text-red-500 dark:text-red-400' %}
+                    {% elseif waistDelta < -0.5 %}
+                        {% set waistTrendArrow = '↓' %}
+                        {% set waistTrendClass = 'text-green-500 dark:text-green-400' %}
+                    {% endif %}
+                {% endif %}
                 <div class="overflow-x-auto mb-6">
-                    <div class="flex gap-3 min-w-max sm:grid sm:grid-cols-4 sm:min-w-0">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 min-w-[120px]">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Peso</p>
                             <p class="text-xl font-bold text-gray-900 dark:text-white">
                                 {% if latestMeasurement.weightKg is not null %}{{ latestMeasurement.weightKg }} <span class="text-xs font-normal text-gray-400">kg</span>{% else %}—{% endif %}
                             </p>
                         </div>
 
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 min-w-[120px]">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Cintura</p>
                             <p class="text-xl font-bold text-gray-900 dark:text-white">
                                 {% if latestMeasurement.waistCm is not null %}{{ latestMeasurement.waistCm }} <span class="text-xs font-normal text-gray-400">cm</span>{% else %}—{% endif %}
                             </p>
                         </div>
 
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 min-w-[120px]">
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pecho</p>
-                            <p class="text-xl font-bold text-gray-900 dark:text-white">
-                                {% if latestMeasurement.chestCm is not null %}{{ latestMeasurement.chestCm }} <span class="text-xs font-normal text-gray-400">cm</span>{% else %}—{% endif %}
-                            </p>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tend. peso 4 sem.</p>
+                            <p class="text-3xl font-bold {{ weightTrendClass }}">{{ weightTrendArrow }}</p>
                         </div>
 
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 min-w-[120px]">
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Brazos</p>
-                            <p class="text-xl font-bold text-gray-900 dark:text-white">
-                                {% if latestMeasurement.armsCm is not null %}{{ latestMeasurement.armsCm }} <span class="text-xs font-normal text-gray-400">cm</span>{% else %}—{% endif %}
-                            </p>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tend. cintura 4 sem.</p>
+                            <p class="text-3xl font-bold {{ waistTrendClass }}">{{ waistTrendArrow }}</p>
                         </div>
 
                     </div>
@@ -450,11 +477,13 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6"
+                     data-controller="personal-records"
+                     data-personal-records-url-value="{{ path('profile_personal_records') }}">
                     <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Records personales</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <a href="{{ path('profile_personal_records') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Ver records →</a>
-                    </p>
+                    <div data-personal-records-target="container">
+                        <p class="text-sm text-gray-400 dark:text-gray-500">Cargando records...</p>
+                    </div>
                 </div>
 
                 {% if is_granted('ROLE_ATLETA') %}
@@ -589,10 +618,10 @@
                 </div>
                 {% endif %}
 
-                {# Demographics info #}
+                {# Demographics edit form #}
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Datos personales</h3>
-                    <dl class="space-y-3 text-sm">
+                    <dl class="space-y-2 text-sm mb-4">
                         <div class="flex justify-between">
                             <dt class="text-gray-500 dark:text-gray-400">Nombre</dt>
                             <dd class="font-medium text-gray-900 dark:text-gray-100">{{ app.user.firstName }} {{ app.user.lastName }}</dd>
@@ -601,22 +630,28 @@
                             <dt class="text-gray-500 dark:text-gray-400">Email</dt>
                             <dd class="font-medium text-gray-900 dark:text-gray-100">{{ app.user.email }}</dd>
                         </div>
-                        {% if app.user.birthDate is defined and app.user.birthDate is not null %}
-                        <div class="flex justify-between">
-                            <dt class="text-gray-500 dark:text-gray-400">Fecha de nacimiento</dt>
-                            <dd class="font-medium text-gray-900 dark:text-gray-100">{{ app.user.birthDate|date('d/m/Y') }}</dd>
-                        </div>
-                        {% endif %}
-                        {% if app.user.heightCm is defined and app.user.heightCm is not null %}
-                        <div class="flex justify-between">
-                            <dt class="text-gray-500 dark:text-gray-400">Altura</dt>
-                            <dd class="font-medium text-gray-900 dark:text-gray-100">{{ app.user.heightCm }} cm</dd>
-                        </div>
-                        {% endif %}
                     </dl>
-                    <div class="mt-4">
-                        <a href="{{ path('profile_picture_show') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Cambiar foto de perfil →</a>
-                    </div>
+                    {{ form_start(settingsForm, {attr: {class: 'space-y-4'}}) }}
+                        <div>
+                            {{ form_label(settingsForm.birthDate, null, {label_attr: {class: 'block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'}}) }}
+                            {{ form_widget(settingsForm.birthDate) }}
+                            {{ form_errors(settingsForm.birthDate) }}
+                        </div>
+                        <div>
+                            {{ form_label(settingsForm.heightCm, null, {label_attr: {class: 'block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'}}) }}
+                            {{ form_widget(settingsForm.heightCm) }}
+                            {{ form_errors(settingsForm.heightCm) }}
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button type="submit"
+                                    class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition">
+                                Guardar cambios
+                            </button>
+                            <a href="{{ path('profile_picture_show') }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                                Cambiar foto de perfil →
+                            </a>
+                        </div>
+                    {{ form_end(settingsForm) }}
                 </div>
 
                 {# Active mesocycle info #}
