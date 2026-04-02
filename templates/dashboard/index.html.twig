@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'macros/score_ring.html.twig' as macros %}
 
 {% block title %}Dashboard — Training Tracker{% endblock %}
 
@@ -6,137 +7,344 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            Bienvenido, {{ user.firstName }}
-        </h1>
-        <p class="text-gray-500 dark:text-gray-400 text-sm mb-8">
-            {% if isAthlete and isCoach %}
-                Conectado como <span class="font-semibold text-indigo-600">Atleta</span> y <span class="font-semibold text-green-600">Entrenador</span>.
-            {% elseif isCoach %}
-                Conectado como <span class="font-semibold text-indigo-600">Entrenador</span>.
-            {% else %}
-                Conectado como <span class="font-semibold text-green-600">Atleta</span>.
-            {% endif %}
-        </p>
-
         {# ================================================================ #}
         {# ATHLETE SECTION                                                   #}
         {# ================================================================ #}
         {% if isAthlete %}
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Mis Mesociclos Activos</h2>
 
-            {% if athleteData.activeAssignments is empty %}
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-10 text-center shadow-sm mb-8">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">No tienes mesociclos asignados actualmente.</p>
-                </div>
+        {# ---- 1. Greeting Header (REQ-1) ---- #}
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {{ athleteData.greeting }}, {{ user.firstName }}
+            </h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                {{ athleteData.todayFormatted }}
+                {% if athleteData.activeMesocycle %}
+                    &middot;
+                    <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ athleteData.activeMesocycle.title }}</span>
+                    &middot; Semana {{ athleteData.mesocycleWeek }} &middot; Día {{ athleteData.mesocycleDay }}
+                {% else %}
+                    &middot; <span class="italic text-gray-400 dark:text-gray-500">Sin mesociclo activo</span>
+                {% endif %}
+            </p>
+        </div>
+
+        {# ---- 2. Score Trio (REQ-2) ---- #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            {# Sleep Score #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 flex flex-col items-center border border-gray-100 dark:border-gray-700">
+                {{ macros.score_ring(athleteData.sleepScore, 'Sueño', athleteData.sleepDurationMinutes > 0 ? ((athleteData.sleepDurationMinutes // 60) ~ 'h ' ~ (athleteData.sleepDurationMinutes % 60) ~ 'm') : null) }}
+            </div>
+
+            {# Readiness / Recovery Score #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 flex flex-col items-center border border-gray-100 dark:border-gray-700">
+                {{ macros.score_ring(athleteData.recoveryScore, 'Recuperación', null) }}
+            </div>
+
+            {# Weekly Load / Fatigue Score #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 flex flex-col items-center border border-gray-100 dark:border-gray-700">
+                {{ macros.score_ring(athleteData.fatigueScore, 'Carga Semanal', null) }}
+            </div>
+        </div>
+
+        {# ---- 3. Fatigue Banner (REQ-3) ---- #}
+        {% if athleteData.fatigueVerdict is not null and athleteData.fatigueVerdict.verdict != 'INSUFFICIENT_DATA' %}
+            {% set fatigueVerdictStr = athleteData.fatigueVerdict.verdict %}
+            {% if fatigueVerdictStr == 'GOOD' or fatigueVerdictStr == 'STABLE' %}
+                {% set bannerBg   = 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' %}
+                {% set bannerText = 'Sin fatiga detectada — buen momento para sesión intensa' %}
+            {% elseif fatigueVerdictStr == 'CAUTION' %}
+                {% set bannerBg   = 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300' %}
+                {% set bannerText = 'Fatiga moderada — considera reducir intensidad' %}
             {% else %}
-                <div class="space-y-6 mb-10">
-                    {% for assignment in athleteData.activeAssignments %}
-                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
-                            {# Mesocycle header #}
-                            <div class="bg-indigo-50 dark:bg-indigo-950 border-b border-indigo-100 dark:border-indigo-900 px-6 py-4">
-                                <div class="flex items-start justify-between">
-                                    <div>
-                                        <h3 class="text-base font-semibold text-indigo-900 dark:text-indigo-200">{{ assignment.mesocycle.title }}</h3>
-                                        <p class="text-sm text-indigo-700 dark:text-indigo-300 mt-0.5">
-                                            Entrenador: <span class="font-medium">{{ assignment.assignedBy.fullName }}</span>
-                                        </p>
-                                    </div>
-                                    <div class="text-xs text-indigo-600 dark:text-indigo-400 text-right">
-                                        <p>Inicio: {{ assignment.startDate|date('d/m/Y') }}</p>
-                                        {% if assignment.endDate %}
-                                            <p>Fin: {{ assignment.endDate|date('d/m/Y') }}</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {# Sessions list #}
-                            {% set sessions = assignment.mesocycle.workoutSessions|sort((a, b) => a.orderIndex <=> b.orderIndex) %}
-                            {% if sessions is empty %}
-                                <div class="px-6 py-4">
-                                    <p class="text-sm text-gray-400 dark:text-gray-500 italic">Este mesociclo no tiene sesiones todavía.</p>
-                                </div>
-                            {% else %}
-                                <ul class="divide-y divide-gray-100 dark:divide-gray-700">
-                                    {% for session in sessions %}
-                                        <li class="flex items-center justify-between px-6 py-4">
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ session.name }}</p>
-                                                {% if session.dayOfWeek %}
-                                                    {% set days = {1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'} %}
-                                                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ days[session.dayOfWeek] ?? '' }}</p>
-                                                {% endif %}
-                                            </div>
-                                            <div>
-                                                {% set _wlId = athleteData.sessionInProgress[session.id] ?? null %}
-                                                {% if _wlId is not null %}
-                                                    <a href="{{ path('workout_show', {workoutLogId: _wlId}) }}"
-                                                       class="inline-flex items-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 active:bg-yellow-600">
-                                                        Continuar
-                                                    </a>
-                                                {% else %}
-                                                    <form method="POST"
-                                                          action="{{ path('workout_start', {assignedMesocycleId: assignment.id, sessionId: session.id}) }}">
-                                                        <button type="submit"
-                                                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700">
-                                                            Iniciar
-                                                        </button>
-                                                    </form>
-                                                {% endif %}
-                                            </div>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
+                {% set bannerBg   = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' %}
+                {% set bannerText = 'Fatiga acumulada — recomendamos descanso activo' %}
             {% endif %}
-            {# ---- Mi análisis (compact analytics panel) ---- #}
-            {% if athleteData.analyticsVerdicts is not null and athleteData.analyticsVerdicts is not empty %}
-                {% set moduleShortNames = {
-                    'recovery_index':    'Recuperación',
-                    'sleep_scoring':     'Sueño',
-                    'fatigue_detection': 'Carga / Fatiga',
-                    'body_measurement':  'Mediciones',
-                    'training_volume':   'Volumen'
-                } %}
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 mt-2">Mi Estado</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
-                    {% for module, verdict in athleteData.analyticsVerdicts %}
-                        {% if verdict.verdict in ['STABLE', 'GOOD'] %}
-                            {% set cardBg    = 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' %}
-                            {% set badgeBg   = 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' %}
-                        {% elseif verdict.verdict == 'CAUTION' %}
-                            {% set cardBg    = 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' %}
-                            {% set badgeBg   = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' %}
-                        {% elseif verdict.verdict in ['ALERT', 'POOR'] %}
-                            {% set cardBg    = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' %}
-                            {% set badgeBg   = 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' %}
-                        {% elseif verdict.verdict == 'INSUFFICIENT_DATA' %}
-                            {% set cardBg    = 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' %}
-                            {% set badgeBg   = 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' %}
-                        {% else %}
-                            {% set cardBg    = 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' %}
-                            {% set badgeBg   = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' %}
-                        {% endif %}
-                        <div class="rounded-lg border {{ cardBg }} px-4 py-3 shadow-sm">
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">
-                                {{ moduleShortNames[module] ?? module|replace({'_': ' '})|title }}
-                            </p>
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ badgeBg }}">
-                                {{ verdict.verdict|replace({'_': ' '}) }}
-                            </span>
-                            {% if verdict.score >= 0 %}
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ verdict.score|number_format(1) }} pts</p>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
+            <div class="rounded-lg border px-4 py-3 mb-4 flex items-center gap-3 {{ bannerBg }}">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
+                </svg>
+                <p class="text-sm font-medium">{{ bannerText }}</p>
+            </div>
         {% endif %}
+
+        {# ---- 4. Next Session Card (REQ-4) ---- #}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
+            {% if athleteData.activeMesocycle is null %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">No hay sesión programada</p>
+            {% elseif athleteData.todaySessions is empty %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">No hay sesión programada para hoy</p>
+            {% else %}
+                {% for session in athleteData.todaySessions %}
+                    {% set isCompleted  = session.id in athleteData.completedSessionIds %}
+                    {% set inProgressId = athleteData.sessionInProgress[session.id] ?? null %}
+                    {% set exercises    = session.orderedExercises %}
+                    {% set exCount      = exercises|length %}
+
+                    <div class="{% if not loop.first %}border-t border-gray-100 dark:border-gray-700 mt-4 pt-4{% endif %}">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ session.name }}</h3>
+                                <p class="text-xs text-gray-400 dark:text-gray-500">{{ exCount }} ejercicio{{ exCount != 1 ? 's' : '' }}</p>
+                            </div>
+                            <div class="flex-shrink-0 ml-3">
+                                {% if isCompleted %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-xs font-semibold text-green-800 dark:text-green-300">
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        Completada
+                                    </span>
+                                {% elseif inProgressId is not null %}
+                                    <a href="{{ path('workout_show', {workoutLogId: inProgressId}) }}"
+                                       class="inline-flex items-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 active:bg-yellow-600">
+                                        Continuar sesión
+                                    </a>
+                                {% else %}
+                                    <form method="POST"
+                                          action="{{ path('workout_start', {assignedMesocycleId: athleteData.firstAssignment.id, sessionId: session.id}) }}">
+                                        <button type="submit"
+                                                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700">
+                                            Comenzar sesión
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {# First 3 exercises preview #}
+                        {% if exCount > 0 %}
+                            <ul class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                {% for se in exercises|slice(0, 3) %}
+                                    <li class="flex items-center gap-2">
+                                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ se.exercise.name }}</span>
+                                        <span class="text-gray-400">·</span>
+                                        <span>{{ se.targetSets }} series</span>
+                                        {% if se.targetReps is not null %}
+                                            <span class="text-gray-400">×</span>
+                                            <span>{{ se.targetReps }} reps</span>
+                                        {% endif %}
+                                        {% if se.targetWeight is not null %}
+                                            <span class="text-gray-400">@</span>
+                                            <span>{{ se.targetWeight|number_format(1) }} kg</span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            {% if exCount > 3 %}
+                                <p class="mt-1 text-xs text-indigo-500 dark:text-indigo-400 font-medium">+{{ exCount - 3 }} más</p>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        {# ---- 5. Weekly Calendar Row (REQ-5) ---- #}
+        <div class="grid grid-cols-7 gap-1 mb-6">
+            {% for dow, cell in athleteData.weekCalendar %}
+                {# Determine cell style #}
+                {% if cell.completed %}
+                    {% set cellStyle = 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300' %}
+                {% elseif cell.isToday %}
+                    {% set cellStyle = 'bg-white dark:bg-gray-800 border-indigo-500 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-400' %}
+                {% elseif not cell.isRest %}
+                    {% set cellStyle = 'bg-white dark:bg-gray-800 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400' %}
+                {% else %}
+                    {% set cellStyle = 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600' %}
+                {% endif %}
+
+                <div class="flex flex-col items-center rounded-lg border px-1 py-2 {{ cellStyle }}">
+                    <span class="text-xs font-semibold">{{ cell.abbr }}</span>
+                    <span class="text-xs mt-0.5">{{ cell.letter ?? '—' }}</span>
+                    {% if cell.completed %}
+                        <svg class="h-3 w-3 mt-0.5 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ---- 6. Vitals 2×2 Grid (REQ-6) ---- #}
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            {# RHR #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">FC en Reposo</p>
+                {% if athleteData.currentRhr is not null %}
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {{ athleteData.currentRhr }} <span class="text-sm font-normal text-gray-400">bpm</span>
+                    </p>
+                    {% if athleteData.rhrBaseline is not null %}
+                        {% set rhrDelta = athleteData.currentRhr - athleteData.rhrBaseline %}
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            Media 14d: {{ athleteData.rhrBaseline }} bpm
+                            <span class="{{ rhrDelta > 0 ? 'text-red-500' : (rhrDelta < 0 ? 'text-green-500' : 'text-gray-400') }}">
+                                ({{ rhrDelta > 0 ? '+' : '' }}{{ rhrDelta }})
+                            </span>
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <p class="text-2xl font-bold text-gray-400 dark:text-gray-500">—</p>
+                {% endif %}
+            </div>
+
+            {# HRV RMSSD #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">HRV RMSSD</p>
+                {% if athleteData.rmssd is not null %}
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {{ athleteData.rmssd|number_format(1) }} <span class="text-sm font-normal text-gray-400">ms</span>
+                    </p>
+                {% else %}
+                    <p class="text-2xl font-bold text-gray-400 dark:text-gray-500">—</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Sin datos Fitbit Premium</p>
+                {% endif %}
+            </div>
+
+            {# Sleep last night #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sueño (anoche)</p>
+                {% if athleteData.sleepDurationMinutes > 0 %}
+                    {% set sleepH = athleteData.sleepDurationMinutes // 60 %}
+                    {% set sleepM = athleteData.sleepDurationMinutes % 60 %}
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ sleepH }}h {{ sleepM }}m</p>
+                    {% if athleteData.sleepDeepMinutes > 0 or athleteData.sleepRemMinutes > 0 %}
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            Deep {{ athleteData.sleepDeepMinutes // 60 }}h {{ athleteData.sleepDeepMinutes % 60 }}m
+                            &middot;
+                            REM {{ athleteData.sleepRemMinutes // 60 }}h {{ athleteData.sleepRemMinutes % 60 }}m
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <p class="text-2xl font-bold text-gray-400 dark:text-gray-500">—</p>
+                {% endif %}
+            </div>
+
+            {# Weight + trend #}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Peso</p>
+                {% if athleteData.latestMeasurement is not null and athleteData.latestMeasurement.weightKg is not null %}
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {{ athleteData.latestMeasurement.weightKg|number_format(1) }}
+                        <span class="text-sm font-normal text-gray-400">kg</span>
+                        <span class="{{ athleteData.weightTrend == '↑' ? 'text-red-500' : (athleteData.weightTrend == '↓' ? 'text-green-500' : 'text-gray-400') }}">
+                            {{ athleteData.weightTrend }}
+                        </span>
+                    </p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Tendencia 4 semanas</p>
+                {% else %}
+                    <p class="text-2xl font-bold text-gray-400 dark:text-gray-500">—</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ---- 7. Daily Goals (REQ-7) ---- #}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Objetivos del día</h3>
+
+            {# Steps #}
+            {% set stepsRatio = athleteData.stepsTarget > 0 ? (athleteData.stepsToday / athleteData.stepsTarget) : 0 %}
+            {% set stepsPct   = [stepsRatio * 100, 100]|min|round %}
+            {% if stepsRatio >= 1 %}
+                {% set stepsBarColor = 'bg-green-500' %}
+            {% elseif stepsRatio >= 0.6 %}
+                {% set stepsBarColor = 'bg-amber-400' %}
+            {% else %}
+                {% set stepsBarColor = 'bg-red-500' %}
+            {% endif %}
+            <div class="mb-3">
+                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Pasos</span>
+                    <span>{{ athleteData.stepsToday|number_format }} / {{ athleteData.stepsTarget|number_format }}</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div class="h-2 rounded-full {{ stepsBarColor }}" style="width: {{ stepsPct }}%"></div>
+                </div>
+            </div>
+
+            {# Active Calories #}
+            {% set calsTarget = 600 %}
+            {% set calsVal    = athleteData.caloriesOut ?? 0 %}
+            {% set calsRatio  = calsTarget > 0 ? (calsVal / calsTarget) : 0 %}
+            {% set calsPct    = [calsRatio * 100, 100]|min|round %}
+            {% if calsRatio >= 1 %}
+                {% set calsBarColor = 'bg-green-500' %}
+            {% elseif calsRatio >= 0.6 %}
+                {% set calsBarColor = 'bg-amber-400' %}
+            {% else %}
+                {% set calsBarColor = 'bg-red-500' %}
+            {% endif %}
+            <div>
+                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Calorías activas</span>
+                    <span>{{ calsVal|number_format }} / {{ calsTarget }}</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div class="h-2 rounded-full {{ calsBarColor }}" style="width: {{ calsPct }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 8. Last Session Mini-Card (REQ-8) ---- #}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-8">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Último entrenamiento</h3>
+
+            {% if athleteData.lastWorkout is null %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic text-center py-4">Sin entrenamientos registrados todavía.</p>
+            {% else %}
+                {% set lw    = athleteData.lastWorkout %}
+                {% set stats = athleteData.lastWorkoutStats %}
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <p class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ lw.workoutSession.name }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {{ lw.startTime|date('d/m/Y') }}
+                            {% if stats.durationSeconds is not null %}
+                                &middot;
+                                {{ (stats.durationSeconds // 60) }}m {{ (stats.durationSeconds % 60) }}s
+                            {% endif %}
+                        </p>
+                    </div>
+                    <a href="{{ path('history_show', {workoutLogId: lw.id}) }}"
+                       class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                        Ver detalle
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center mb-3">
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2 py-2">
+                        <p class="text-base font-bold text-gray-900 dark:text-gray-100">{{ stats.exerciseCount }}</p>
+                        <p class="text-xs text-gray-400">Ejercicios</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2 py-2">
+                        <p class="text-base font-bold text-gray-900 dark:text-gray-100">{{ stats.setCount }}</p>
+                        <p class="text-xs text-gray-400">Series</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-2 py-2">
+                        <p class="text-base font-bold text-gray-900 dark:text-gray-100">{{ stats.tonnage|number_format(0) }}</p>
+                        <p class="text-xs text-gray-400">kg tonelaje</p>
+                    </div>
+                </div>
+
+                {# StatGuard verdict badge #}
+                {% if athleteData.lastWorkoutVerdict is not null %}
+                    {% set lvVerdict = athleteData.lastWorkoutVerdict.verdict %}
+                    {% if lvVerdict in ['STABLE', 'GOOD'] %}
+                        {% set lvBadge = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' %}
+                    {% elseif lvVerdict == 'CAUTION' %}
+                        {% set lvBadge = 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' %}
+                    {% elseif lvVerdict in ['ALERT', 'POOR'] %}
+                        {% set lvBadge = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' %}
+                    {% else %}
+                        {% set lvBadge = 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' %}
+                    {% endif %}
+                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {{ lvBadge }}">
+                        StatGuard: {{ lvVerdict|replace({'_': ' '}) }}
+                    </span>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {% endif %}{# end isAthlete #}
 
         {# ================================================================ #}
         {# COACH SECTION                                                     #}

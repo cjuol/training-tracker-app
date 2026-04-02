@@ -1,0 +1,24 @@
+{% macro score_ring(score, label, sublabel) %}
+{%- set r = 28 -%}
+{%- set circ = 2 * 3.14159 * r -%}
+{%- set dash = score >= 0 ? (score / 100 * circ)|round(2) : 0 -%}
+{%- set colorClass = score >= 70 ? 'text-green-500' : (score >= 40 ? 'text-amber-400' : (score >= 0 ? 'text-red-500' : 'text-gray-300')) -%}
+<div class="flex flex-col items-center">
+    <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+        <circle cx="36" cy="36" r="{{ r }}" fill="none"
+                class="stroke-gray-200 dark:stroke-gray-700" stroke-width="6"/>
+        <circle cx="36" cy="36" r="{{ r }}" fill="none"
+                class="{{ colorClass }} stroke-current" stroke-width="6"
+                stroke-dasharray="{{ dash }} {{ circ }}"
+                stroke-dashoffset="{{ (circ / 4)|round(2) }}"
+                stroke-linecap="round"
+                transform="rotate(-90 36 36)"/>
+        <text x="36" y="41" text-anchor="middle"
+              class="fill-gray-900 dark:fill-gray-100" font-size="14" font-weight="600">
+            {{ score >= 0 ? score|round : '—' }}
+        </text>
+    </svg>
+    <p class="mt-1 text-xs font-medium text-gray-700 dark:text-gray-300 text-center">{{ label }}</p>
+    {% if sublabel %}<p class="text-xs text-gray-400 dark:text-gray-500 text-center">{{ sublabel }}</p>{% endif %}
+</div>
+{% endmacro %}
